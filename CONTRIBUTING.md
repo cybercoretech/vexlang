@@ -26,7 +26,7 @@ language-design feedback are all useful contributions.
 ## Development setup
 
 ```sh
-git clone https://github.com/cybercore-tech/vexlang.git
+git clone https://github.com/cybercoretech/vexlang.git
 cd vexlang
 cargo test --all-targets
 mdbook test docs
@@ -89,9 +89,9 @@ Vex is an alpha interpreter and typed-IR prototype exploring syntax, semantics,
 diagnostics, and eventual compilation.
 
 Start here:
-• Project: https://github.com/cybercore-tech/vexlang
-• Contributor guide: https://github.com/cybercore-tech/vexlang/blob/main/CONTRIBUTING.md
-• Docs: https://github.com/cybercore-tech/vexlang/tree/main/docs
+• Project: https://github.com/cybercoretech/vexlang
+• Contributor guide: https://github.com/cybercoretech/vexlang/blob/main/CONTRIBUTING.md
+• Docs: https://github.com/cybercoretech/vexlang/tree/main/docs
 • Discord contact: darkstar_dev
 
 Discuss language design, interpreter/compiler development, tests, docs,

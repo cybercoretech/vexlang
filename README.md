@@ -8,8 +8,8 @@ language. It is not a production compiler or native toolchain yet. Vex is
 released under the [MIT license](LICENSE).
 
 [![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
-[![CI](https://github.com/cybercore-tech/vexlang/actions/workflows/quality.yml/badge.svg)](https://github.com/cybercore-tech/vexlang/actions/workflows/quality.yml)
-[![Release](https://img.shields.io/badge/release-0.1.0--alpha.1-purple)](https://github.com/cybercore-tech/vexlang)
+[![CI](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml/badge.svg)](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml)
+[![Release](https://img.shields.io/badge/release-0.1.0--alpha.1-purple)](https://github.com/cybercoretech/vexlang)
 
 ## 🛰️ Signal status
 

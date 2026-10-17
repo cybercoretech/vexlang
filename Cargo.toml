@@ -6,8 +6,8 @@ rust-version = "1.85"
 license = "MIT"
 description = "Alpha interpreter and typed IR prototype for the Vex language"
 readme = "README.md"
-repository = "https://github.com/cybercore-tech/vexlang"
-homepage = "https://github.com/cybercore-tech/vexlang"
+repository = "https://github.com/cybercoretech/vexlang"
+homepage = "https://github.com/cybercoretech/vexlang"
 
 # If you had [workspace] here, remove it for now.
 # You only need workspace if you are splitting the compiler into
