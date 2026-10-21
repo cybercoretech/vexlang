@@ -1,3 +1,9 @@
+use std::collections::HashMap;
+use std::fs;
+use std::io::{self, BufRead, Read, Write};
+
+use pest::error::LineColLocation;
+
 mod analyzer;
 mod ast;
 mod builder;
@@ -9,16 +15,11 @@ mod ir;
 mod parser;
 mod project;
 
-use std::collections::HashMap;
-use std::fs;
-use std::io::{self, BufRead, Read, Write};
-
 use analyzer::SemanticAnalyzer;
 use builder::{SpannedStmt, build_ast_with_spans};
 use codegen::{Backend, QbeBackend, TextBackend};
 use diagnostics::{Diagnostic, Span, span_for};
 use parser::parse_vex;
-use pest::error::LineColLocation;
 
 fn declaration_spans(source: &str, stmts: &[SpannedStmt]) -> HashMap<String, Span> {
     let mut spans = HashMap::new();

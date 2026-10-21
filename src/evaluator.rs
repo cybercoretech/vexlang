@@ -1,7 +1,9 @@
 use crate::ast::{Expr, Op, Pattern, Stmt, Type, Value};
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 const LOOP_ITERATION_LIMIT: usize = 1_000_000;
 const CALL_DEPTH_LIMIT: usize = 256;
+const CAPTURED_OUTPUT_LIMIT: usize = 12_000;
 #[derive(Debug, Clone, PartialEq)]
 pub enum EvalError {
     RuntimeError(String),
@@ -23,6 +25,40 @@ enum Control {
 }
 type Env = HashMap<String, Value>;
 type Functions = HashMap<String, (Vec<(String, Type)>, Type, Expr)>;
+
+#[derive(Default)]
+struct CapturedOutput {
+    text: String,
+    truncated: bool,
+}
+
+thread_local! {
+    static OUTPUT_CAPTURE: RefCell<Option<CapturedOutput>> = const { RefCell::new(None) };
+}
+
+fn emit_output(text: &str) {
+    OUTPUT_CAPTURE.with(|capture| {
+        if let Some(output) = capture.borrow_mut().as_mut() {
+            let remaining = CAPTURED_OUTPUT_LIMIT.saturating_sub(output.text.len());
+            if text.len() <= remaining {
+                output.text.push_str(text);
+            } else {
+                let mut end = 0;
+                for (index, character) in text.char_indices() {
+                    let next = index + character.len_utf8();
+                    if next > remaining {
+                        break;
+                    }
+                    end = next;
+                }
+                output.text.push_str(&text[..end]);
+                output.truncated = true;
+            }
+        } else {
+            print!("{text}");
+        }
+    });
+}
 
 #[derive(Clone, Default)]
 pub struct Session {
@@ -71,6 +107,20 @@ impl Session {
             }
         }
         Ok(last)
+    }
+
+    /// Evaluate with standard-library output captured for embedders such as
+    /// the browser WebAssembly host. Normal CLI evaluation still prints it.
+    #[allow(dead_code)] // Used by the library build and the wasm browser API.
+    pub fn eval_capturing_output(
+        &mut self,
+        stmts: &[Stmt],
+    ) -> (Result<Value, EvalError>, String, bool) {
+        let previous =
+            OUTPUT_CAPTURE.with(|capture| capture.replace(Some(CapturedOutput::default())));
+        let result = self.eval(stmts);
+        let output = OUTPUT_CAPTURE.with(|capture| capture.replace(previous).unwrap_or_default());
+        (result, output.text, output.truncated)
     }
 }
 
@@ -345,9 +395,9 @@ fn eval_expr(x: &Expr, e: &mut Env, f: &Functions, d: usize) -> Result<Control, 
                 if vals.len() != 1 {
                     return Err(EvalError::RuntimeError(format!("{n} expects one argument")));
                 }
-                print!("{}", display(&vals[0]));
+                emit_output(&display(&vals[0]));
                 if n == "println" {
-                    println!()
+                    emit_output("\n");
                 }
                 return Ok(Control::Value(Value::Unit));
             }

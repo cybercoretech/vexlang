@@ -1,0 +1,12 @@
+pub mod analyzer;
+pub mod ast;
+pub mod browser;
+pub mod builder;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod codegen;
+pub mod diagnostics;
+pub mod evaluator;
+pub mod ir;
+pub mod parser;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod project;

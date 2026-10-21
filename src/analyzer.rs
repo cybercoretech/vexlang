@@ -8,6 +8,7 @@ struct Function {
 }
 type EnumDefinitions = HashMap<String, Vec<(String, Vec<(String, Type)>)>>;
 
+#[derive(Default)]
 pub struct SemanticAnalyzer {
     symbols: HashMap<String, Type>,
     functions: HashMap<String, Function>,
@@ -17,12 +18,7 @@ pub struct SemanticAnalyzer {
 
 impl SemanticAnalyzer {
     pub fn new() -> Self {
-        Self {
-            symbols: HashMap::new(),
-            functions: HashMap::new(),
-            records: HashMap::new(),
-            enums: HashMap::new(),
-        }
+        Self::default()
     }
     pub fn analyze(&mut self, stmts: &[Stmt]) -> Result<(), String> {
         match self.analyze_all(stmts).into_iter().next() {
