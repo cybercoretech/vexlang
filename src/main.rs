@@ -227,6 +227,54 @@ fn run(source: &str) -> Result<ast::Value, Diagnostic> {
     })
 }
 
+fn apply_repl_input(
+    source: &mut String,
+    statements: &mut Vec<ast::Stmt>,
+    session: &mut evaluator::Session,
+    input: &str,
+) -> Result<ast::Value, Diagnostic> {
+    let mut candidate = source.clone();
+    candidate.push_str(input);
+    let parsed = pipeline(&candidate)?;
+    let new_statements = parsed
+        .get(statements.len()..)
+        .ok_or_else(|| {
+            Diagnostic::new(
+                "E9001",
+                "REPL statement history is inconsistent",
+                Span { start: 0, end: 0 },
+            )
+        })?
+        .to_vec();
+
+    let previous_session = session.clone();
+    match session.eval(&new_statements) {
+        Ok(value) => {
+            *source = candidate;
+            *statements = parsed;
+            Ok(value)
+        }
+        Err(error) => {
+            *session = previous_session;
+            let message = error.to_string();
+            let code = if matches!(error, evaluator::EvalError::TypeError(_)) {
+                "E3002"
+            } else {
+                "E3001"
+            };
+            Err(
+                Diagnostic::new(code, message.clone(), span_for(&candidate, None)).with_suggestion(
+                    if message.contains("division by zero") {
+                        "ensure the divisor is not zero"
+                    } else {
+                        "check the values used by this expression"
+                    },
+                ),
+            )
+        }
+    }
+}
+
 fn read_source(path: Option<&str>) -> Result<String, String> {
     match path {
         None | Some("-") => {
@@ -283,7 +331,9 @@ fn repl() {
     let mut input = stdin.lock();
     let mut line = String::new();
     let mut source = String::new();
+    let mut statements = Vec::new();
     let mut pending = String::new();
+    let mut session = evaluator::Session::new();
     loop {
         print!("vex> ");
         let _ = io::stdout().flush();
@@ -299,12 +349,19 @@ fn repl() {
                 ":help" => println!(":help :reset :type EXPR :ir :load FILE :quit"),
                 ":reset" => {
                     source.clear();
+                    statements.clear();
+                    session = evaluator::Session::new();
                     println!("reset");
                 }
-                ":type" => match pipeline(&format!("{};", parts.collect::<Vec<_>>().join(" "))) {
-                    Ok(stmts) => println!("{:?}", stmts.last()),
-                    Err(error) => eprintln!("{}", error.render(&source, "<repl>")),
-                },
+                ":type" => {
+                    let expression = parts.collect::<Vec<_>>().join(" ");
+                    let mut query = source.clone();
+                    query.push_str(&format!("\n{expression};"));
+                    match pipeline(&query) {
+                        Ok(stmts) => println!("{:?}", stmts.last()),
+                        Err(error) => eprintln!("{}", error.render(&query, "<repl>")),
+                    }
+                }
                 ":ir" => match lower_source(&source) {
                     Ok((_, program)) => print!("{}", ir::render(&program)),
                     Err(error) => eprintln!("{}", error.render(&source, "<repl>")),
@@ -313,8 +370,22 @@ fn repl() {
                     if let Some(path) = parts.next() {
                         match fs::read_to_string(path) {
                             Ok(contents) => {
-                                source.push_str(&contents);
-                                source.push('\n');
+                                let mut input = contents;
+                                if !input.ends_with('\n') {
+                                    input.push('\n');
+                                }
+                                let diagnostic_source = format!("{source}{input}");
+                                match apply_repl_input(
+                                    &mut source,
+                                    &mut statements,
+                                    &mut session,
+                                    &input,
+                                ) {
+                                    Ok(_) => println!("loaded {path}"),
+                                    Err(error) => {
+                                        eprintln!("{}", error.render(&diagnostic_source, "<repl>"))
+                                    }
+                                }
                             }
                             Err(error) => eprintln!("could not load `{path}`: {error}"),
                         }
@@ -333,14 +404,12 @@ fn repl() {
         if pending.matches('{').count() != pending.matches('}').count() {
             continue;
         }
-        let previous = source.len();
-        source.push_str(&pending);
-        pending.clear();
-        match run(&source) {
+        let input = std::mem::take(&mut pending);
+        let diagnostic_source = format!("{source}{input}");
+        match apply_repl_input(&mut source, &mut statements, &mut session, &input) {
             Ok(value) => println!("{value:?}"),
             Err(error) => {
-                eprintln!("{}", error.render(&source, "<repl>"));
-                source.truncate(previous);
+                eprintln!("{}", error.render(&diagnostic_source, "<repl>"));
             }
         }
     }

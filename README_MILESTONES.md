@@ -27,13 +27,11 @@ backend validation, and deferred language features.
 - Add a structured error/result model.
 - Define modules, imports, and project configuration.
 
-Collections/indexing, structured error/result values, modules/imports, and
-project configuration remain explicitly deferred.
-
-The next implementation sequence is tracked as Phases 15–20: pattern matching
-and Result propagation, a stateful REPL, local modules/projects, mutable maps
+Phases 15 and 16 (interpreter pattern matching/Result propagation and the
+stateful REPL) are complete. Scoped maps are implemented; mutation and iteration
+remain deferred. The forward sequence is local modules/projects, map mutation
 and iteration, type aliases/tuples/generic foundations, and compiler-readiness
-validation. Experimental QBE IL now exists for the first scalar subset; packaged
+validation. Experimental QBE IL exists for the first scalar subset; packaged
 native executable generation remains out of scope until validation and runtime
 ABI coverage are broader.
 

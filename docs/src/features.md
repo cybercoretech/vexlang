@@ -12,16 +12,20 @@ The interpreter currently supports:
 * typed functions, returns, recursion, and bounded call depth;
 * user-defined record declarations, construction, validated fields, and access;
 * typed arrays, nested/empty literals, indexing, mutation, and bounds checks;
+* enum values, exhaustive `match`, structured `Result` values, and `?`
+  propagation in the interpreter;
+* scoped string-keyed maps with `map` and `map_get`;
 * `print` and `println`;
 * structured diagnostics and the `check`, `run`, `fmt`, `test`, `build`, `ir`,
-  `target`, and `qbe` commands;
+  `target`, `qbe`, `repl`, and metadata-only `project` commands;
 * a typed, deterministic, backend-independent textual IR;
 * experimental QBE IL emission for the verified scalar target subset.
 
 ## Deferred or intentionally unsupported
 
-Floating point values, resources (`res`), maps, generics, filesystem access,
-modules, project configuration, and lockfile semantics are deferred. Record
+Floating point values, resources (`res`), map mutation/iteration, generics,
+filesystem access, modules/imports, project execution, and lockfile semantics
+are deferred. Project metadata can be read from a small `vex.toml`. Record
 types are the first supported user-defined type. Milestone 9's lightweight
 compatibility, diagnostic,
 generated-input, and opt-in performance smoke tests are now present; a

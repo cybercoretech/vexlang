@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed REPL evaluation so each accepted input runs once instead of replaying
+  earlier statements and repeating their side effects. Runtime state now rolls
+  back with failed snippets, with regression coverage for mutable bindings,
+  function persistence, and side-effect counts.
 - Added a structured IR verifier (`IR001` invariant failures and `IR002`
   deferred-feature failures) that runs before `build`/`ir` artifacts are
   rendered.

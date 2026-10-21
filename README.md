@@ -65,9 +65,12 @@ values[1] = 9;
 values[1];
 ```
 
-Maps and generics are explicitly deferred. Floating point, `res`, filesystem
-access, modules/imports, structured errors/results, project configuration, and
-packaged native executable generation are intentionally deferred.
+The interpreter also supports enums, `ok(value)`/`err(value)` results,
+exhaustive `match` expressions, `?` propagation, and small string-keyed maps
+with `map` and `map_get`. The CLI includes a stateful REPL and a
+metadata-only `vex.toml` project reader. Generics, map mutation/iteration,
+modules/imports, filesystem access, floating point, `res`, and packaged
+native executable generation remain deferred.
 
 ## 🧪 Quick start
 
@@ -81,6 +84,8 @@ cargo run -- build program.vex
 cargo run -- ir program.vex
 cargo run -- target program.vex
 cargo run -- qbe program.vex
+cargo run -- repl
+cargo run -- project vex.toml
 cargo run -- --json check program.vex
 ```
 
@@ -142,8 +147,8 @@ VEX
 ├── 🚧 Phase 9  Language expansion
 │   ├── ✅ user-defined record types
 │   ├── ✅ typed arrays and indexing
-│   ├── maps, generics, and structured errors
-│   └── modules and project configuration
+│   ├── ✅ interpreter enums, Result propagation, and scoped maps
+│   └── ⏳ modules, generics, and project/package management
 ├── 🚧 Milestone 12 Production diagnostics
 │   ├── ✅ initial machine-readable JSON diagnostics
 │   ├── AST-wide source spans
@@ -162,6 +167,10 @@ VEX
 
 See the [future milestone plan](README_MILESTONES.md) and
 [completed phases](README_COMPLETED_PHASES.md) for detailed scope and status.
+
+Try the themed [Vex Language Lab in DarkwaveCode](https://darkwavecode.pages.dev/vexlab.html).
+It provides guided examples and an editable Workbench starter; execution still
+requires the Vex CLI.
 
 ## 🛠️ Development
 

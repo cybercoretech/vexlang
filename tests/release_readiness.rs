@@ -26,6 +26,51 @@ fn vex_args(source: &str, args: &[&str]) -> std::process::Output {
     child.wait_with_output().expect("vexlang should exit")
 }
 
+fn repl(input: &str) -> std::process::Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_vexlang"))
+        .arg("repl")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("vexlang REPL should start");
+    {
+        use std::io::Write;
+        child
+            .stdin
+            .as_mut()
+            .expect("REPL stdin should be available")
+            .write_all(input.as_bytes())
+            .expect("REPL input should be accepted");
+    }
+    child.wait_with_output().expect("REPL should exit")
+}
+
+#[test]
+fn repl_runs_side_effects_once_and_keeps_session_state() {
+    let output =
+        repl("let counter = 0;\nprintln(\"booted\");\ncounter = counter + 1;\ncounter;\n:q\n");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(output.status.success());
+    assert_eq!(stdout.matches("booted").count(), 1, "{stdout}");
+    assert!(stdout.contains("Int(1)"), "{stdout}");
+}
+
+#[test]
+fn repl_keeps_functions_and_rolls_back_failed_inputs() {
+    let output = repl(
+        "let base = 20;\nfn add_base(n: i32) -> i32 { n + 20 }\nadd_base(base);\n1 / 0;\nbase;\n:q\n",
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(output.status.success());
+    assert!(stdout.contains("Int(40)"), "{stdout}");
+    assert!(stdout.contains("Int(20)"), "{stdout}");
+    assert!(stderr.contains("division by zero"), "{stderr}");
+}
+
 #[test]
 fn cli_version_matches_package_metadata() {
     let output = Command::new(env!("CARGO_BIN_EXE_vexlang"))

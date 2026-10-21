@@ -69,8 +69,8 @@ This file records delivered phases. Forward-looking work is tracked in
 ## Current release posture
 
 The repository is public-ready for the labeled alpha scope. It is not yet a
-production compiler release: native executable generation, maps, generics,
-modules, and project/package management remain future work.
+production compiler release: native executable generation, map mutation and
+iteration, generics, modules, and project/package management remain future work.
 
 ## Phase 15 — Pattern matching and Result propagation
 
@@ -85,7 +85,8 @@ modules, and project/package management remain future work.
 - REPL bindings and function declarations persist across successful inputs.
 - Added multiline brace-aware input and `:help`, `:reset`, `:type`, `:ir`,
   `:load`, and `:quit` commands.
-- Failed snippets are rolled back so a typo does not poison the session.
+- Each input executes once, so prior side effects are not replayed.
+- Failed snippets roll back both the input history and runtime session state.
 
 ## Phase 17 — Local modules and projects
 

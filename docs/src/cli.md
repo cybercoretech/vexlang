@@ -12,7 +12,7 @@ diagnostics to a single machine-readable JSON object on standard error.
 | --- | --- | --- |
 | `check FILE` | Parse and semantically validate without running | `0` |
 | `run FILE` | Validate and evaluate the program | `0` |
-| `repl` | Read, validate, and evaluate one source line at a time | `0` |
+| `repl` | Stateful interactive session with multiline input and inspection commands | `0` |
 | `project FILE` | Validate and summarize a `vex.toml` project configuration | `0` |
 | `fmt FILE` | Validate and write the source to standard output | `0` |
 | `test FILE` | Validate and evaluate as an executable smoke test | `0` |

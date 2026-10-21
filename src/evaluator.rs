@@ -23,41 +23,59 @@ enum Control {
 }
 type Env = HashMap<String, Value>;
 type Functions = HashMap<String, (Vec<(String, Type)>, Type, Expr)>;
+
+#[derive(Clone, Default)]
+pub struct Session {
+    env: Env,
+    functions: Functions,
+}
+
+impl Session {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Evaluate only the supplied statements while preserving this session's
+    /// bindings and functions between REPL inputs.
+    pub fn eval(&mut self, stmts: &[Stmt]) -> Result<Value, EvalError> {
+        for stmt in stmts {
+            if let Stmt::Function {
+                name,
+                params,
+                return_type,
+                body,
+            } = stmt
+            {
+                self.functions.insert(
+                    name.clone(),
+                    (params.clone(), return_type.clone(), body.clone()),
+                );
+            }
+        }
+
+        let mut last = Value::Int(0);
+        for stmt in stmts {
+            if matches!(stmt, Stmt::Function { .. }) {
+                continue;
+            }
+            match eval_stmt(stmt, &mut self.env, &self.functions, 0)? {
+                Control::Value(value) => last = value,
+                Control::Return(_) => {
+                    return Err(EvalError::RuntimeError("return outside function".into()));
+                }
+                Control::Break | Control::Continue => {
+                    return Err(EvalError::RuntimeError(
+                        "loop control escaped its loop".into(),
+                    ));
+                }
+            }
+        }
+        Ok(last)
+    }
+}
+
 pub fn eval(stmts: &[Stmt]) -> Result<Value, EvalError> {
-    let mut fs = Functions::new();
-    for s in stmts {
-        if let Stmt::Function {
-            name,
-            params,
-            return_type,
-            body,
-        } = s
-        {
-            fs.insert(
-                name.clone(),
-                (params.clone(), return_type.clone(), body.clone()),
-            );
-        }
-    }
-    let mut env = Env::new();
-    let mut last = Value::Int(0);
-    for s in stmts {
-        if matches!(s, Stmt::Function { .. }) {
-            continue;
-        }
-        match eval_stmt(s, &mut env, &fs, 0)? {
-            Control::Value(v) => last = v,
-            Control::Return(_) => {
-                return Err(EvalError::RuntimeError("return outside function".into()));
-            }
-            Control::Break | Control::Continue => {
-                return Err(EvalError::RuntimeError(
-                    "loop control escaped its loop".into(),
-                ));
-            }
-        }
-    }
-    Ok(last)
+    Session::new().eval(stmts)
 }
 fn eval_stmt(s: &Stmt, e: &mut Env, f: &Functions, d: usize) -> Result<Control, EvalError> {
     match s {
