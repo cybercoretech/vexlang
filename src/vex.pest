@@ -12,8 +12,109 @@ KW_RETURN = _{ "return" }
 KW_RECORD = _{ "record" }
 KW_ENUM = _{ "enum" }
 
-ident = @{ !(KW_LET | KW_IF | KW_ELSE | KW_WHILE | KW_BREAK | KW_CONTINUE | KW_FN | KW_RETURN | KW_ENUM | "record")
-  ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+// Memory & Resource Management
+KW_ARENA = _{ "arena" }
+KW_OWN = _{ "own" }
+KW_LEASE = _{ "lease" }
+KW_PIN = _{ "pin" }
+KW_STATIC = _{ "static" }
+KW_POOL = _{ "pool" }
+KW_REGION = _{ "region" }
+KW_GUARD = _{ "guard" }
+
+// Concurrency & Parallelism
+KW_ASYNC = _{ "async" }
+KW_AWAIT = _{ "await" }
+KW_SPAWN = _{ "spawn" }
+KW_CHANNEL = _{ "channel" }
+KW_LOCK = _{ "lock" }
+KW_ATOMIC = _{ "atomic" }
+KW_SELECT = _{ "select" }
+
+// Error Handling
+KW_ENSURE = _{ "ensure" }
+KW_RECOVER = _{ "recover" }
+KW_FALLBACK = _{ "fallback" }
+KW_TRY = _{ "try" }
+KW_THROW = _{ "throw" }
+KW_SUPPRESS = _{ "suppress" }
+
+// Type System
+KW_TRAIT = _{ "trait" }
+KW_IMPL = _{ "impl" }
+KW_WHERE = _{ "where" }
+KW_OPAQUE = _{ "opaque" }
+KW_NEWTYPE = _{ "newtype" }
+KW_UNION = _{ "union" }
+KW_PHANTOM = _{ "phantom" }
+
+// Metaprogramming
+KW_MACRO = _{ "macro" }
+KW_DERIVE = _{ "derive" }
+KW_INLINE = _{ "inline" }
+KW_CONSTEXPR = _{ "constexpr" }
+KW_GENERIC = _{ "generic" }
+KW_SPECIALIZE = _{ "specialize" }
+
+// Modules & Packages
+KW_MODULE = _{ "module" }
+KW_USE = _{ "use" }
+KW_EXPORT = _{ "export" }
+KW_PACKAGE = _{ "package" }
+KW_EXTERNAL = _{ "external" }
+
+// Testing & Docs
+KW_TEST = _{ "test" }
+KW_BENCH = _{ "bench" }
+KW_DOC = _{ "doc" }
+KW_EXAMPLE = _{ "example" }
+
+// Safety & Security
+KW_UNSAFE = _{ "unsafe" }
+KW_TRUSTED = _{ "trusted" }
+KW_VERIFY = _{ "verify" }
+KW_SANDBOX = _{ "sandbox" }
+KW_AUDIT = _{ "audit" }
+
+// Performance
+KW_COLD = _{ "cold" }
+KW_HOT = _{ "hot" }
+KW_VECTORIZE = _{ "vectorize" }
+KW_PARALLEL = _{ "parallel" }
+KW_NOINLINE = _{ "noinline" }
+
+// Interoperability & FFI
+KW_EXTERN = _{ "extern" }
+KW_ABI = _{ "abi" }
+KW_PACKED = _{ "packed" }
+
+// Reflection
+KW_REFLECT = _{ "reflect" }
+KW_TYPEOF = _{ "typeof" }
+
+// Contracts & Verification
+KW_CONTRACT = _{ "contract" }
+KW_INVARIANT = _{ "invariant" }
+KW_ASSERT = _{ "assert" }
+KW_ASSUME = _{ "assume" }
+KW_PROVE = _{ "prove" }
+
+ident = @{ !(
+    KW_LET | KW_IF | KW_ELSE | KW_WHILE | KW_BREAK | KW_CONTINUE | KW_FN | KW_RETURN | KW_RECORD | KW_ENUM
+    | KW_ARENA | KW_OWN | KW_LEASE | KW_PIN | KW_STATIC | KW_POOL | KW_REGION | KW_GUARD
+    | KW_ASYNC | KW_AWAIT | KW_SPAWN | KW_CHANNEL | KW_LOCK | KW_ATOMIC | KW_SELECT
+    | KW_ENSURE | KW_RECOVER | KW_FALLBACK | KW_TRY | KW_THROW | KW_SUPPRESS
+    | KW_TRAIT | KW_IMPL | KW_WHERE | KW_OPAQUE | KW_NEWTYPE | KW_UNION | KW_PHANTOM
+    | KW_MACRO | KW_DERIVE | KW_INLINE | KW_CONSTEXPR | KW_GENERIC | KW_SPECIALIZE
+    | KW_MODULE | KW_USE | KW_EXPORT | KW_PACKAGE | KW_EXTERNAL
+    | KW_TEST | KW_BENCH | KW_DOC | KW_EXAMPLE
+    | KW_UNSAFE | KW_TRUSTED | KW_VERIFY | KW_SANDBOX | KW_AUDIT
+    | KW_COLD | KW_HOT | KW_VECTORIZE | KW_PARALLEL | KW_NOINLINE
+    | KW_EXTERN | KW_ABI | KW_PACKED
+    | KW_REFLECT | KW_TYPEOF
+    | KW_CONTRACT | KW_INVARIANT | KW_ASSERT | KW_ASSUME | KW_PROVE
+  ) ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
 int = @{ ASCII_DIGIT+ }
 string = @{ "\"" ~ ( "\\\"" | "\\\\" | !"\"" ~ ANY )* ~ "\"" }
 type_name = { array_type | "i32" | "u64" | "f64" | "bool" | "string" | "res" | ident }
@@ -23,6 +124,24 @@ record_decl = { "record" ~ ident ~ "{" ~ (field_decl ~ ("," ~ field_decl)*)? ~ "
 enum_field = { ident ~ ":" ~ type_name }
 enum_variant = { ident ~ ("(" ~ (type_name ~ ("," ~ type_name)*)? ~ ")" | "{" ~ (enum_field ~ ("," ~ enum_field)*)? ~ "}")? }
 enum_decl = { "enum" ~ ident ~ "{" ~ (enum_variant ~ ("," ~ enum_variant)*)? ~ ","? ~ "}" }
+
+// Syntax rules for custom language elements
+trait_method = { "fn" ~ ident ~ "(" ~ (param ~ ("," ~ param)*)? ~ ")" ~ ("->" ~ type_name)? ~ ";" }
+trait_decl = { "trait" ~ ident ~ "{" ~ trait_method* ~ "}" }
+impl_decl = { "impl" ~ (ident ~ "for")? ~ ident ~ "{" ~ fn_decl* ~ "}" }
+module_decl = { "module" ~ ident ~ "{" ~ stmt* ~ "}" }
+use_stmt = { "use" ~ (ident ~ "::")* ~ (ident | "*") ~ ";" }
+export_stmt = { "export" ~ ident ~ ";" }
+contract_decl = { "contract" ~ ident ~ "{" ~ invariant_stmt* ~ "}" }
+invariant_stmt = { "invariant" ~ expr ~ ";" }
+newtype_decl = { "newtype" ~ ident ~ "=" ~ type_name ~ ";" }
+test_decl = { "test" ~ fn_decl }
+bench_decl = { "bench" ~ fn_decl }
+extern_decl = { "extern" ~ string? ~ fn_decl }
+unsafe_stmt = { "unsafe" ~ block }
+trusted_decl = { "trusted" ~ fn_decl }
+ensure_stmt = { "ensure" ~ expr ~ "else" ~ expr ~ ";" }
+throw_stmt = { "throw" ~ expr ~ ";" }
 
 unary_op = { "-" | "!" }
 record_field = { ident ~ ":" ~ expr }
@@ -55,5 +174,32 @@ assign = { assign_target ~ "=" ~ expr ~ ";" | ident ~ "=" ~ expr ~ ";" }
 param = { ident ~ ":" ~ type_name }
 fn_decl = { KW_FN ~ ident ~ "(" ~ (param ~ ("," ~ param)*)? ~ ")" ~ ("->" ~ type_name)? ~ block }
 expr_stmt = { expr ~ ";" }
-stmt = { enum_decl | record_decl | fn_decl | let_decl | assign | if_stmt | while_stmt | break_stmt | continue_stmt | return_stmt | expr_stmt }
+stmt = {
+    enum_decl
+  | record_decl
+  | trait_decl
+  | impl_decl
+  | module_decl
+  | use_stmt
+  | export_stmt
+  | contract_decl
+  | invariant_stmt
+  | newtype_decl
+  | test_decl
+  | bench_decl
+  | extern_decl
+  | unsafe_stmt
+  | trusted_decl
+  | ensure_stmt
+  | throw_stmt
+  | fn_decl
+  | let_decl
+  | assign
+  | if_stmt
+  | while_stmt
+  | break_stmt
+  | continue_stmt
+  | return_stmt
+  | expr_stmt
+}
 program = { SOI ~ stmt* ~ EOI }

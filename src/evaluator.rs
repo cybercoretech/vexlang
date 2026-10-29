@@ -218,6 +218,41 @@ fn eval_stmt(s: &Stmt, e: &mut Env, f: &Functions, d: usize) -> Result<Control, 
         }
         Stmt::Break => Ok(Control::Break),
         Stmt::Continue => Ok(Control::Continue),
+        Stmt::Trait { .. }
+        | Stmt::Module { .. }
+        | Stmt::Use { .. }
+        | Stmt::Export { .. }
+        | Stmt::Contract { .. }
+        | Stmt::Newtype { .. } => Ok(Control::Value(Value::Unit)),
+        Stmt::Impl { methods, .. } => {
+            for m in methods {
+                eval_stmt(m, e, f, d)?;
+            }
+            Ok(Control::Value(Value::Unit))
+        }
+        Stmt::Invariant(expr) => {
+            let val = value_of(eval_expr(expr, e, f, d)?)?;
+            if val != Value::Bool(true) {
+                return Err(EvalError::RuntimeError("invariant violation".into()));
+            }
+            Ok(Control::Value(Value::Unit))
+        }
+        Stmt::Ensure { condition, message } => {
+            if !as_bool(eval_expr(condition, e, f, d)?)? {
+                let msg_val = value_of(eval_expr(message, e, f, d)?)?;
+                return Err(EvalError::RuntimeError(format!("{msg_val:?}")));
+            }
+            Ok(Control::Value(Value::Unit))
+        }
+        Stmt::Throw(expr) => {
+            let val = value_of(eval_expr(expr, e, f, d)?)?;
+            Err(EvalError::RuntimeError(format!("{val:?}")))
+        }
+        Stmt::Unsafe(expr) => eval_expr(expr, e, f, d),
+        Stmt::Test(stmt)
+        | Stmt::Bench(stmt)
+        | Stmt::Trusted(stmt)
+        | Stmt::Extern { func: stmt, .. } => eval_stmt(stmt, e, f, d),
     }
 }
 fn eval_expr(x: &Expr, e: &mut Env, f: &Functions, d: usize) -> Result<Control, EvalError> {

@@ -277,6 +277,33 @@ impl SemanticAnalyzer {
                     ));
                 }
             }
+            Stmt::Trait { .. }
+            | Stmt::Module { .. }
+            | Stmt::Use { .. }
+            | Stmt::Export { .. }
+            | Stmt::Contract { .. }
+            | Stmt::Newtype { .. } => {}
+            Stmt::Impl { methods, .. } => {
+                for m in methods {
+                    self.check_stmt(m, scope, loops, ret)?;
+                }
+            }
+            Stmt::Invariant(e) | Stmt::Throw(e) => {
+                self.check_expr(e, scope, loops, ret)?;
+            }
+            Stmt::Ensure { condition, message } => {
+                let ct = self.check_expr(condition, scope, loops, ret)?;
+                if ct != Type::Bool {
+                    return Err("ensure condition must be a boolean expression".into());
+                }
+                self.check_expr(message, scope, loops, ret)?;
+            }
+            Stmt::Unsafe(e) => {
+                self.check_expr(e, scope, loops, ret)?;
+            }
+            Stmt::Test(s) | Stmt::Bench(s) | Stmt::Trusted(s) | Stmt::Extern { func: s, .. } => {
+                self.check_stmt(s, scope, loops, ret)?;
+            }
         }
         Ok(())
     }

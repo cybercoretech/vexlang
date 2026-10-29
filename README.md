@@ -66,10 +66,11 @@ values[1];
 ```
 
 The interpreter also supports enums, `ok(value)`/`err(value)` results,
-exhaustive `match` expressions, `?` propagation, and small string-keyed maps
-with `map` and `map_get`. The CLI includes a stateful REPL and a
+exhaustive `match` expressions, `?` propagation, small string-keyed maps
+with `map` and `map_get`, modules (`mod`), imports (`use`), exports, traits,
+impls, contracts, and newtypes. The CLI includes a stateful REPL and a
 metadata-only `vex.toml` project reader. Generics, map mutation/iteration,
-modules/imports, filesystem access, floating point, `res`, and packaged
+filesystem access, floating point, `res`, and packaged
 native executable generation remain deferred.
 
 ## 🧪 Quick start
@@ -152,7 +153,8 @@ VEX
 │   ├── ✅ user-defined record types
 │   ├── ✅ typed arrays and indexing
 │   ├── ✅ interpreter enums, Result propagation, and scoped maps
-│   └── ⏳ modules, generics, and project/package management
+│   ├── ✅ modules (`mod`), imports (`use`), exports, traits, impls, contracts, and newtypes
+│   └── ⏳ generics and project/package management
 ├── 🚧 Milestone 12 Production diagnostics
 │   ├── ✅ initial machine-readable JSON diagnostics
 │   ├── AST-wide source spans

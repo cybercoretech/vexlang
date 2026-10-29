@@ -125,6 +125,48 @@ pub enum Stmt {
     Break,
     Continue,
     Return(Option<Expr>),
+    // Custom language constructs
+    Trait {
+        name: String,
+        methods: Vec<(String, Vec<(String, Type)>, Type)>,
+    },
+    Impl {
+        trait_name: Option<String>,
+        target: String,
+        methods: Vec<Stmt>,
+    },
+    Module {
+        name: String,
+        body: Vec<Stmt>,
+    },
+    Use {
+        path: Vec<String>,
+    },
+    Export {
+        name: String,
+    },
+    Contract {
+        name: String,
+        invariants: Vec<Expr>,
+    },
+    Invariant(Expr),
+    Newtype {
+        name: String,
+        underlying: Type,
+    },
+    Test(Box<Stmt>),
+    Bench(Box<Stmt>),
+    Extern {
+        abi: Option<String>,
+        func: Box<Stmt>,
+    },
+    Unsafe(Expr),
+    Trusted(Box<Stmt>),
+    Ensure {
+        condition: Expr,
+        message: Expr,
+    },
+    Throw(Expr),
 }
 
 #[derive(Debug, Clone, PartialEq)]

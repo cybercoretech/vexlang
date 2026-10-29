@@ -260,6 +260,138 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
                 .ok_or_else(|| BuildError("empty expression statement".into()))?;
             Ok(Stmt::ExprStmt(build_expr(expr)?))
         }
+        Rule::trait_decl => {
+            let mut pairs = inner.into_inner();
+            let name = pairs.next().unwrap().as_str().to_string();
+            let mut methods = Vec::new();
+            for method_pair in pairs {
+                if method_pair.as_rule() == Rule::trait_method {
+                    let mut m_pairs = method_pair.into_inner();
+                    let m_name = m_pairs.next().unwrap().as_str().to_string();
+                    let mut m_params = Vec::new();
+                    let mut m_ret = Type::Unit;
+                    for part in m_pairs {
+                        match part.as_rule() {
+                            Rule::param => {
+                                let mut p = part.into_inner();
+                                let n = p.next().unwrap().as_str().to_string();
+                                let t = parse_type(p.next().unwrap().as_str());
+                                m_params.push((n, t));
+                            }
+                            Rule::type_name => m_ret = parse_type(part.as_str()),
+                            _ => {}
+                        }
+                    }
+                    methods.push((m_name, m_params, m_ret));
+                }
+            }
+            Ok(Stmt::Trait { name, methods })
+        }
+        Rule::impl_decl => {
+            let mut pairs = inner.into_inner().peekable();
+            let first = pairs.next().unwrap().as_str().to_string();
+            let (trait_name, target) = if let Some(next) = pairs.peek() {
+                if next.as_rule() == Rule::ident {
+                    let tgt = pairs.next().unwrap().as_str().to_string();
+                    (Some(first), tgt)
+                } else {
+                    (None, first)
+                }
+            } else {
+                (None, first)
+            };
+            let mut methods = Vec::new();
+            for pair in pairs {
+                if pair.as_rule() == Rule::fn_decl {
+                    methods.push(build_stmt(pair)?);
+                }
+            }
+            Ok(Stmt::Impl {
+                trait_name,
+                target,
+                methods,
+            })
+        }
+        Rule::module_decl => {
+            let mut pairs = inner.into_inner();
+            let name = pairs.next().unwrap().as_str().to_string();
+            let mut body = Vec::new();
+            for pair in pairs {
+                body.push(build_stmt(pair)?);
+            }
+            Ok(Stmt::Module { name, body })
+        }
+        Rule::use_stmt => {
+            let path: Vec<String> = inner.into_inner().map(|p| p.as_str().to_string()).collect();
+            Ok(Stmt::Use { path })
+        }
+        Rule::export_stmt => {
+            let name = inner.into_inner().next().unwrap().as_str().to_string();
+            Ok(Stmt::Export { name })
+        }
+        Rule::contract_decl => {
+            let mut pairs = inner.into_inner();
+            let name = pairs.next().unwrap().as_str().to_string();
+            let mut invariants = Vec::new();
+            for pair in pairs {
+                if pair.as_rule() == Rule::invariant_stmt {
+                    let expr = pair.into_inner().next().unwrap();
+                    invariants.push(build_expr(expr)?);
+                }
+            }
+            Ok(Stmt::Contract { name, invariants })
+        }
+        Rule::invariant_stmt => {
+            let expr = inner.into_inner().next().unwrap();
+            Ok(Stmt::Invariant(build_expr(expr)?))
+        }
+        Rule::newtype_decl => {
+            let mut pairs = inner.into_inner();
+            let name = pairs.next().unwrap().as_str().to_string();
+            let underlying = parse_type(pairs.next().unwrap().as_str());
+            Ok(Stmt::Newtype { name, underlying })
+        }
+        Rule::test_decl => {
+            let fn_pair = inner.into_inner().next().unwrap();
+            Ok(Stmt::Test(Box::new(build_stmt(fn_pair)?)))
+        }
+        Rule::bench_decl => {
+            let fn_pair = inner.into_inner().next().unwrap();
+            Ok(Stmt::Bench(Box::new(build_stmt(fn_pair)?)))
+        }
+        Rule::extern_decl => {
+            let mut pairs = inner.into_inner();
+            let mut abi = None;
+            let next = pairs.next().unwrap();
+            let fn_pair = if next.as_rule() == Rule::string {
+                abi = Some(next.as_str().trim_matches('"').to_string());
+                pairs.next().unwrap()
+            } else {
+                next
+            };
+            Ok(Stmt::Extern {
+                abi,
+                func: Box::new(build_stmt(fn_pair)?),
+            })
+        }
+        Rule::unsafe_stmt => {
+            let block_pair = inner.into_inner().next().unwrap();
+            Ok(Stmt::Unsafe(build_block_expr(block_pair)?))
+        }
+        Rule::trusted_decl => {
+            let fn_pair = inner.into_inner().next().unwrap();
+            Ok(Stmt::Trusted(Box::new(build_stmt(fn_pair)?)))
+        }
+        Rule::ensure_stmt => {
+            let mut pairs = inner.into_inner();
+            let condition = build_expr(pairs.next().unwrap())?;
+            let message = build_expr(pairs.next().unwrap())?;
+            Ok(Stmt::Ensure { condition, message })
+        }
+        Rule::throw_stmt => {
+            let expr = inner.into_inner().next().unwrap();
+            Ok(Stmt::Throw(build_expr(expr)?))
+        }
         other => Err(BuildError(format!(
             "unsupported statement `{other:?}`; supported statements are let, assignment, if, while, break, continue, and expressions"
         ))),

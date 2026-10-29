@@ -919,6 +919,14 @@ fn lower_stmt(stmt: &Stmt, functions: &Functions, scope: &mut Scope) -> Result<I
                 .map(|expr| lower_expr(expr, functions, scope))
                 .transpose()?,
         )),
+        Stmt::Test(inner)
+        | Stmt::Bench(inner)
+        | Stmt::Trusted(inner)
+        | Stmt::Extern { func: inner, .. } => lower_stmt(inner, functions, scope),
+        Stmt::Unsafe(expr) => Ok(IrStmt::Expr(lower_expr(expr, functions, scope)?)),
+        other => Err(LowerError::Unsupported(format!(
+            "IR lowering does not yet support statement `{other:?}`"
+        ))),
     }
 }
 

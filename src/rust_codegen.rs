@@ -34,7 +34,15 @@ impl RustBackend {
                     }
                     items.push(stmt);
                 }
-                Stmt::Record { .. } | Stmt::Enum { .. } => {
+                Stmt::Record { .. }
+                | Stmt::Enum { .. }
+                | Stmt::Trait { .. }
+                | Stmt::Impl { .. }
+                | Stmt::Module { .. }
+                | Stmt::Use { .. }
+                | Stmt::Export { .. }
+                | Stmt::Newtype { .. }
+                | Stmt::Contract { .. } => {
                     items.push(stmt);
                 }
                 _ => {
@@ -125,6 +133,91 @@ impl RustBackend {
                 Some(e) => format!("{ind}return {};", self.emit_expr(e)),
                 None => format!("{ind}return;"),
             },
+            Stmt::Trait { name, methods } => {
+                let mut out = format!("{ind}pub trait {name} {{\n");
+                for (m_name, m_params, m_ret) in methods {
+                    let param_strs: Vec<String> = m_params
+                        .iter()
+                        .map(|(p_name, p_ty)| format!("{}: {}", p_name, self.emit_type(p_ty)))
+                        .collect();
+                    out.push_str(&format!("{ind}    fn {m_name}({})", param_strs.join(", ")));
+                    if !matches!(m_ret, Type::Unit) {
+                        out.push_str(&format!(" -> {}", self.emit_type(m_ret)));
+                    }
+                    out.push_str(";\n");
+                }
+                out.push_str(&format!("{ind}}}\n"));
+                out
+            }
+            Stmt::Impl {
+                trait_name,
+                target,
+                methods,
+            } => {
+                let header = if let Some(tr) = trait_name {
+                    format!("{ind}impl {tr} for {target} {{\n")
+                } else {
+                    format!("{ind}impl {target} {{\n")
+                };
+                let mut out = header;
+                for m in methods {
+                    out.push_str(&self.emit_stmt(m, indent_level + 1));
+                    out.push('\n');
+                }
+                out.push_str(&format!("{ind}}}\n"));
+                out
+            }
+            Stmt::Module { name, body } => {
+                let mut out = format!("{ind}pub mod {name} {{\n");
+                for s in body {
+                    out.push_str(&self.emit_stmt(s, indent_level + 1));
+                    out.push('\n');
+                }
+                out.push_str(&format!("{ind}}}\n"));
+                out
+            }
+            Stmt::Use { path } => {
+                format!("{ind}pub use {};", path.join("::"))
+            }
+            Stmt::Export { name } => {
+                format!("{ind}pub use {name};")
+            }
+            Stmt::Newtype { name, underlying } => {
+                format!(
+                    "{ind}#[derive(Debug, Clone, PartialEq)]\npub struct {name}(pub {});\n",
+                    self.emit_type(underlying)
+                )
+            }
+            Stmt::Contract { name, .. } => {
+                format!("{ind}// Contract {name}\n")
+            }
+            Stmt::Invariant(expr) => {
+                format!("{ind}assert!({});", self.emit_expr(expr))
+            }
+            Stmt::Ensure { condition, message } => {
+                format!(
+                    "{ind}if !({}) {{ return Err({}.into()); }}",
+                    self.emit_expr(condition),
+                    self.emit_expr(message)
+                )
+            }
+            Stmt::Throw(expr) => {
+                format!("{ind}return Err({}.into());", self.emit_expr(expr))
+            }
+            Stmt::Unsafe(expr) => {
+                format!("{ind}unsafe {}", self.emit_expr(expr))
+            }
+            Stmt::Trusted(stmt) => self.emit_stmt(stmt, indent_level),
+            Stmt::Test(stmt) => {
+                format!("{ind}#[test]\n{}", self.emit_stmt(stmt, indent_level))
+            }
+            Stmt::Bench(stmt) => {
+                format!("{ind}#[bench]\n{}", self.emit_stmt(stmt, indent_level))
+            }
+            Stmt::Extern { abi, func } => {
+                let abi_str = abi.as_deref().unwrap_or("C");
+                format!("{ind}extern \"{abi_str}\" {}", self.emit_stmt(func, 0))
+            }
         }
     }
 
@@ -180,7 +273,12 @@ impl RustBackend {
 
     fn emit_enum(&self, name: &str, variants: &[crate::ast::EnumVariant]) -> String {
         let mut output = String::new();
-        output.push_str("#[derive(Debug, Clone, PartialEq)]\n");
+        let is_all_unit = variants.iter().all(|v| v.fields.is_empty());
+        if is_all_unit {
+            output.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
+        } else {
+            output.push_str("#[derive(Debug, Clone, PartialEq)]\n");
+        }
         output.push_str("pub enum ");
         output.push_str(name);
         output.push_str(" {\n");
@@ -377,7 +475,7 @@ impl RustBackend {
                 format!("{} {{ {} }}", name, field_strs.join(", "))
             }
             Expr::Field(inner, field) => {
-                format!("{}.{}", self.emit_expr(inner), field)
+                format!("{}.{}.clone()", self.emit_expr(inner), field)
             }
             Expr::Array(elems) => {
                 let elem_strs: Vec<String> = elems.iter().map(|e| self.emit_expr(e)).collect();
@@ -385,7 +483,7 @@ impl RustBackend {
             }
             Expr::Index(array, index) => {
                 format!(
-                    "{}[({}) as usize]",
+                    "{}[({}) as usize].clone()",
                     self.emit_expr(array),
                     self.emit_expr(index)
                 )
@@ -522,7 +620,7 @@ let p = Point { x: 10, y: 20 };
         let rust_code = backend.emit_rust(&stmts);
 
         assert!(rust_code.contains("#[derive(Debug, Clone, PartialEq)]\npub struct Point"));
-        assert!(rust_code.contains("#[derive(Debug, Clone, PartialEq)]\npub enum Status"));
+        assert!(rust_code.contains("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Status"));
         assert!(rust_code.contains("Point { x: 10, y: 20 }"));
     }
 
@@ -535,7 +633,7 @@ let p = Point { x: 10, y: 20 };
 
         assert!(rust_code.contains("let mut items: Vec<i32> = vec![1, 2, 3];"));
         assert!(rust_code.contains("items[0 as usize] = 5;"));
-        assert!(rust_code.contains("items[(0) as usize];"));
+        assert!(rust_code.contains("items[(0) as usize].clone();"));
     }
 
     #[test]

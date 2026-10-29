@@ -29,7 +29,11 @@ fn declaration_spans(source: &str, stmts: &[SpannedStmt]) -> HashMap<String, Spa
             ast::Stmt::Let { name, .. }
             | ast::Stmt::Function { name, .. }
             | ast::Stmt::Record { name, .. }
-            | ast::Stmt::Enum { name, .. } => vec![name.as_str()],
+            | ast::Stmt::Enum { name, .. }
+            | ast::Stmt::Trait { name, .. }
+            | ast::Stmt::Module { name, .. }
+            | ast::Stmt::Contract { name, .. }
+            | ast::Stmt::Newtype { name, .. } => vec![name.as_str()],
             _ => Vec::new(),
         };
         let text = &source[spanned.span.start..spanned.span.end];
