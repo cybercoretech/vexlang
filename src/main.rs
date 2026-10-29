@@ -14,6 +14,7 @@ mod evaluator;
 mod ir;
 mod parser;
 mod project;
+mod rust_codegen;
 
 use analyzer::SemanticAnalyzer;
 use builder::{SpannedStmt, build_ast_with_spans};
@@ -292,7 +293,7 @@ fn read_source(path: Option<&str>) -> Result<String, String> {
 }
 
 fn usage() -> &'static str {
-    "usage: vexlang [--json] [check|run|repl|project|fmt|test|build|ir|target|qbe] [FILE|-]\n       vexlang FILE   (backwards-compatible alias for run)\n       vexlang --version"
+    "usage: vexlang [--json] [check|run|repl|project|fmt|test|build|ir|target|qbe|rust] [FILE|-]\n       vexlang FILE   (backwards-compatible alias for run)\n       vexlang --version"
 }
 
 fn render_diagnostic(error: &Diagnostic, source: &str, path: Option<&str>, json: bool) -> String {
@@ -456,7 +457,16 @@ fn main() {
         [command, path]
             if matches!(
                 command.as_str(),
-                "check" | "run" | "project" | "fmt" | "test" | "build" | "ir" | "target" | "qbe"
+                "check"
+                    | "run"
+                    | "project"
+                    | "fmt"
+                    | "test"
+                    | "build"
+                    | "ir"
+                    | "target"
+                    | "qbe"
+                    | "rust"
             ) =>
         {
             (command.as_str(), Some(path.as_str()))
@@ -538,6 +548,16 @@ fn main() {
                         std::process::exit(3);
                     }
                 }
+            }
+            Err(error) => {
+                report_diagnostic(&error, &source, path, diagnostic_json);
+                std::process::exit(1);
+            }
+        },
+        "rust" => match pipeline(&source) {
+            Ok(stmts) => {
+                let backend = rust_codegen::RustBackend::new();
+                print!("{}", backend.emit_rust(&stmts));
             }
             Err(error) => {
                 report_diagnostic(&error, &source, path, diagnostic_json);

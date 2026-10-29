@@ -84,6 +84,7 @@ cargo run -- build program.vex
 cargo run -- ir program.vex
 cargo run -- target program.vex
 cargo run -- qbe program.vex
+cargo run -- rust program.vex
 cargo run -- repl
 cargo run -- project vex.toml
 cargo run -- --json check program.vex
@@ -94,7 +95,8 @@ lower the program to deterministic textual IR; they do not emit machine code.
 `target` validates the IR against the `vex-scalar-v1` contract and emits
 a verified textual target artifact. `qbe` emits experimental QBE IL for the
 same scalar subset; it is an intermediate artifact, not a packaged native
-executable.
+executable. `rust` transpiles verified Vexlang source into standalone, idiomatic
+Rust source code that compiles directly with standard `rustc`.
 Before rendering, the IR verifier checks scopes, types, declarations, control
 flow, and backend support. A failed verification is a hard error: no target
 artifact is produced.
@@ -113,7 +115,7 @@ a command to emit one machine-readable diagnostic object on stderr. Exit status
 `0` means success, `1` means a source or test failure, `2` means a CLI or I/O
 error, and `3` means an explicitly unsupported target/backend operation.
 
-### Usage warnings
+### ⚠️ Usage warnings
 
 - Vex is still alpha software; syntax, IR details, and experimental backend
   behavior may change before a production release.
@@ -122,6 +124,8 @@ error, and `3` means an explicitly unsupported target/backend operation.
 - The QBE backend currently accepts only the verified scalar subset: `i32`,
   `bool`, `unit`, declared function calls, locals, structured control flow,
   loop control, returns, and checked scalar arithmetic.
+- `rust` emits standalone Rust source code supporting records, enums, arrays,
+  match expressions, functions, loops, and results, which compiles directly with `rustc`.
 - Interpreter features such as strings, `u64`, records, arrays, maps, enums,
   `Result`, and I/O builtins are rejected at the `vex-scalar-v1` target
   boundary until their runtime ABI is specified.
@@ -156,6 +160,7 @@ VEX
 │   └── multi-error recovery
 ├── 🚧 Milestone 13 Native compilation
 │   ├── ✅ experimental scalar QBE IL backend
+│   ├── ✅ Rust transpiler codegen backend (`vexlang rust`)
 │   ├── ✅ compiled/interpreted QBE conformance smoke tests
 │   ├── target expansion, starting with `u64` design
 │   └── reproducible native executable artifacts
@@ -232,7 +237,7 @@ QBE output is available through `vexlang qbe` for the first scalar target. It
 remains experimental and intentionally stops at QBE IL; release artifacts still
 contain source packages rather than native executables.
 
-### Native lowering contract
+### 📜 Native lowering contract
 
 The first native target consumes only verified IR containing `i32`, `bool`,
 `unit`, calls to declared functions, and structured `if`/`while`/loop-control.

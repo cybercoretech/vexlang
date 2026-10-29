@@ -1,0 +1,13 @@
+// Simple test for Rust backend
+record Point {
+    x: i32,
+    y: i32
+}
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+let p: Point = Point { x: 1, y: 2 };
+let result = add(3, 4);
+result;

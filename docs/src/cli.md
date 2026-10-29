@@ -20,6 +20,7 @@ diagnostics to a single machine-readable JSON object on standard error.
 | `ir FILE` | Alias for `build`; print the typed textual IR | `0` |
 | `target FILE` | Validate against `vex-scalar-v1` and emit textual target IR | `0` |
 | `qbe FILE` | Validate against `vex-scalar-v1` and emit experimental QBE IL | `0` |
+| `rust FILE` | Validate and transpile the program to standalone Rust source code | `0` |
 
 `vexlang FILE` remains a backwards-compatible alias for `vexlang run FILE`.
 Examples:
@@ -27,10 +28,11 @@ Examples:
 ```sh
 cargo run -- check examples/hello.vex
 cargo run -- run examples/hello.vex
- cargo run -- repl
+cargo run -- repl
 printf 'let n = 6; n * 7;' | cargo run -- run -
 cargo run -- fmt program.vex > formatted.vex
 cargo run -- qbe program.vex > program.ssa
+cargo run -- rust program.vex > program.rs
 cargo run -- --json check program.vex
 ```
 

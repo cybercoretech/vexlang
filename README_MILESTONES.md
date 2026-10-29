@@ -1,9 +1,9 @@
-# Vex milestones
+# 🎯 Vex milestones
 
 This file is the forward-looking project plan. Completed work is recorded
 separately in [`README_COMPLETED_PHASES.md`](README_COMPLETED_PHASES.md).
 
-## Milestone 8 — Public alpha hardening
+## 🟢 Milestone 8 — Public alpha hardening
 
 - Keep the `0.1.0-alpha.1` syntax and command behavior stable.
 - Check package/CLI/documentation version consistency.
@@ -16,7 +16,7 @@ separately in [`README_COMPLETED_PHASES.md`](README_COMPLETED_PHASES.md).
 release remains blocked by packaged native executable generation, broader
 backend validation, and deferred language features.
 
-## Milestone 9 — Language expansion
+## 🚧 Milestone 9 — Language expansion
 
 - Add user-defined types and records. **Records are complete:** declarations,
   construction, field access, semantic field/type validation, interpreter
@@ -46,7 +46,7 @@ prohibited, QBE IL is emitted only for the verified scalar subset, and
 spans/diagnostics/IR validation must be expanded before native executable
 artifacts are introduced.
 
-## Milestone 12 — Production diagnostics
+## 🚧 Milestone 12 — Production diagnostics
 
 - Retain source spans on every AST node. **Started:** AST construction now
   preserves top-level statement spans and expression spans from the parse tree;
@@ -61,21 +61,22 @@ artifacts are introduced.
   undefined-function diagnostics, plus conservative line-oriented parse
   recovery.
 
-## Milestone 13 — Native compilation
+## 🦀 Milestone 13 — Native compilation & Rust backend
 
+- **Rust transpilation backend complete:** `vexlang rust` transpiles verified Vexlang source code into standalone, idiomatic Rust that compiles directly with standard `rustc`.
 - Harden the experimental QBE backend behind the existing typed IR.
 - Expand compiled-vs-interpreted differential tests beyond the optional local
   QBE/`cc` smoke corpus.
 - Define target support and reproducible native executable build artifacts.
 
-## Milestone 14 — Ecosystem and tooling
+## 🔭 Milestone 14 — Ecosystem and tooling
 
 - Add package/project management.
 - Add editor/LSP integration.
 - Add formatter guarantees and language-server diagnostics.
 - Publish stable standard-library and compatibility policies.
 
-## Quality gate
+## 🛡️ Quality gate
 
 Every milestone must preserve:
 

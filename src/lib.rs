@@ -10,3 +10,4 @@ pub mod ir;
 pub mod parser;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod project;
+pub mod rust_codegen;
