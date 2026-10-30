@@ -2,6 +2,7 @@
 
 - [Introduction](intro.md)
 - [Language reference](language.md)
+- [Keywords & Syntax Elements](keywords.md)
 - [Command-line reference](cli.md)
 - [Diagnostics](diagnostics.md)
 - [Features and limitations](features.md)

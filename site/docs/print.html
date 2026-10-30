@@ -1,0 +1,899 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>VEXLANG</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Rust / Zig Based Coding Language">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/book-5c9b8e5d.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-75634797.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-4818d024.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">VEXLANG</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="vex"><a class="header" href="#vex">Vex</a></h1>
+<p>Vex is an experimental Rust-based language prototype. The current release is
+an alpha interpreter for a deliberately small language.</p>
+<p>The project roadmap is in <a href="#vex-milestones">Milestones</a>. The
+<a href="#language-reference">language reference</a>, <a href="#command-line-reference">CLI reference</a>, and
+<a href="#diagnostics">diagnostics guide</a> document the user-facing contracts. The
+first milestone defines the quality gates that every change must pass before
+the language grows further.</p>
+<p>The repository also maintains a standalone
+<a href="../../README_MILESTONES.html">milestone plan</a> and
+<a href="../../README_COMPLETED_PHASES.html">completed phases</a> record.</p>
+<p>Contributor setup and review expectations are documented in
+<a href="../../CONTRIBUTING.html">CONTRIBUTING.md</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="language-reference"><a class="header" href="#language-reference">Language reference</a></h1>
+<p>Vex source is a sequence of statements. Statements end with <code>;</code>, except
+function declarations and block-bodied control-flow statements. Whitespace and
+<code>//</code> comments are ignored.</p>
+<h2 id="literals-and-names"><a class="header" href="#literals-and-names">Literals and names</a></h2>
+<pre><code class="language-vex">42;                 // inferred signed integer
+true;               // boolean
+"hello";            // string
+let count = 3;
+let total: i32 = count + 2;
+let bytes: u64 = u64(9);
+</code></pre>
+<p>Identifiers begin with a letter or <code>_</code> and may contain letters, digits, and
+underscores. The keywords <code>let</code>, <code>if</code>, <code>else</code>, <code>while</code>, <code>break</code>, <code>continue</code>,
+<code>fn</code>, <code>return</code>, and <code>record</code> cannot be used as identifiers.</p>
+<h2 id="expressions-and-operators"><a class="header" href="#expressions-and-operators">Expressions and operators</a></h2>
+<p>Operators, from lowest to highest precedence, are:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Precedence</th><th>Operators</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td><code>&amp;&amp;</code>, `</td><td></td></tr>
+<tr><td>2</td><td><code>&lt;</code>, <code>&gt;</code></td><td>Numeric comparison</td></tr>
+<tr><td>3</td><td><code>+</code>, <code>-</code></td><td>Addition and subtraction</td></tr>
+<tr><td>4</td><td><code>*</code>, <code>/</code></td><td>Multiplication and division</td></tr>
+<tr><td>5</td><td>unary <code>-</code>, <code>!</code></td><td>Numeric negation and boolean not</td></tr>
+</tbody>
+</table>
+</div>
+<p>Parentheses override precedence. <code>&amp;&amp;</code> and <code>||</code> short-circuit. Arithmetic is
+checked for overflow, and division by zero is a runtime error.</p>
+<h2 id="declarations-and-assignment"><a class="header" href="#declarations-and-assignment">Declarations and assignment</a></h2>
+<p><code>let name = expression;</code> infers a type. An optional annotation can be
+<code>i32</code>, <code>u64</code>, <code>bool</code>, <code>string</code>, or <code>res</code> (the latter is currently rejected as
+unsupported). Assignment updates an existing variable:</p>
+<pre><code class="language-vex">let index: i32 = 0;
+index = index + 1;
+</code></pre>
+<p><code>i32</code> values must fit the signed 32-bit range. <code>u64</code> values are represented
+separately at runtime and cannot contain negative values. Explicit conversions
+are available as <code>i32(value)</code> and <code>u64(value)</code>.</p>
+<h2 id="records"><a class="header" href="#records">Records</a></h2>
+<p>Records declare fixed named fields. Construction must provide every field
+exactly once with a compatible value, and unknown field access is rejected:</p>
+<pre><code class="language-vex">record Point { x: i32, y: i32 }
+let point: Point = Point { x: 2, y: 3 };
+point.x + point.y;
+</code></pre>
+<p>Records are supported by the interpreter and textual IR. Sum types use <code>enum</code>
+declarations and construct tagged values with <code>EnumName::Variant</code>:</p>
+<pre><code class="language-vex">enum Maybe { None, Some { value: i32 } }
+let answer: Maybe = Maybe::Some { value: 42 };
+</code></pre>
+<p>Enum variants are checked against their declared fields and preserved as tagged
+runtime values and textual IR. The interpreter supports enum matching with
+variant and wildcard patterns. The built-ins <code>ok(value)</code> and <code>err(value)</code>
+create structured results; <code>match</code> checks <code>Ok</code>/<code>Err</code> exhaustiveness and <code>?</code>
+propagates an error result from a function.
+Arrays and indexing are supported as described below. String-keyed maps are
+also available through the limited <code>map</code> and <code>map_get</code> built-ins. Modules,
+imports, generics, and project execution remain deferred.</p>
+<h2 id="arrays-and-indexing"><a class="header" href="#arrays-and-indexing">Arrays and indexing</a></h2>
+<p>Array literals use square brackets and may be empty, nested, or assigned an
+element type:</p>
+<pre><code class="language-vex">let numbers: [i32] = [1, 2, 3];
+let matrix = [[1, 2], [3, 4]];
+numbers[1] = 9;
+numbers[1];
+</code></pre>
+<p>Indices are zero-based <code>i32</code> values. Indexing a non-array, using a non-integer
+index, or selecting an out-of-bounds element is an error. Arrays are mutable;
+map mutation, iteration, and generic collection types are deferred.</p>
+<h2 id="control-flow"><a class="header" href="#control-flow">Control flow</a></h2>
+<pre><code class="language-vex">if ready { println("go"); } else { println("wait"); }
+
+while index &lt; 3 {
+    index = index + 1;
+}
+</code></pre>
+<p>Blocks may contain declarations and statements, followed by an optional final
+expression. <code>break</code> and <code>continue</code> are valid only inside a loop. Loops stop
+after one million iterations.</p>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<p>Functions have typed parameters and an optional return type:</p>
+<pre><code class="language-vex">fn add(left: i32, right: i32) -&gt; i32 {
+    left + right
+}
+
+add(2, 3);
+</code></pre>
+<p>Functions can recurse, return explicitly with <code>return expression;</code>, and call
+other declared functions. Active call depth is limited to 256. Built-ins
+<code>print(value)</code> and <code>println(value)</code> write to standard output and return unit.</p>
+<h2 id="program-result"><a class="header" href="#program-result">Program result</a></h2>
+<p>The interpreter evaluates top-level statements in order and prints the final
+value for <code>run</code>. <code>check</code> performs parsing and semantic analysis without
+evaluation.</p>
+<h2 id="projects"><a class="header" href="#projects">Projects</a></h2>
+<p>Project roots may contain a small <code>vex.toml</code> foundation:</p>
+<pre><code class="language-toml">[project]
+name = "sample"
+version = "0.1.0"
+source = "src/main.vex"
+</code></pre>
+<p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Module/import
+resolution and dependency management are reserved for a later phase.</p>
+<h2 id="maps-scoped-collection"><a class="header" href="#maps-scoped-collection">Maps (scoped collection)</a></h2>
+<p>Maps are available as a deliberately small, non-generic collection:
+<code>map("key", value, ...)</code> creates a string-keyed map and <code>map_get(map, "key")</code>
+retrieves a value. Missing keys are runtime errors. Mutation, arbitrary key
+types, iteration, and full generic type parameters remain deferred.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="vexlang-custom-language-keywords--syntax-elements"><a class="header" href="#vexlang-custom-language-keywords--syntax-elements">Vexlang Custom Language Keywords &amp; Syntax Elements</a></h1>
+<p>Vexlang introduces a clean, expressive set of keywords and syntax elements designed for systems programming, safe code lowering, and modern ergonomics without complex borrow checker overhead.</p>
+<h2 id="core-declarations--structure"><a class="header" href="#core-declarations--structure">Core Declarations &amp; Structure</a></h2>
+<h3 id="let---variable-binding"><a class="header" href="#let---variable-binding"><code>let</code> - Variable Binding</a></h3>
+<p>Declare immutable or mutable local bindings with optional type annotations.</p>
+<pre><code class="language-vex">let base: i32 = 10;
+let mut count = 0;
+</code></pre>
+<h3 id="fn---function-definition"><a class="header" href="#fn---function-definition"><code>fn</code> - Function Definition</a></h3>
+<p>Define typed functions with parameters, return types, and expression bodies.</p>
+<pre><code class="language-vex">fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+</code></pre>
+<h3 id="record---structured-data"><a class="header" href="#record---structured-data"><code>record</code> - Structured Data</a></h3>
+<p>Define user-defined record types with typed fields.</p>
+<pre><code class="language-vex">record Point {
+    x: i32,
+    y: i32,
+}
+</code></pre>
+<h3 id="enum---algebraic-data-types"><a class="header" href="#enum---algebraic-data-types"><code>enum</code> - Algebraic Data Types</a></h3>
+<p>Define enums with unit variants or payload fields.</p>
+<pre><code class="language-vex">enum Status {
+    Active,
+    Inactive,
+    Error { code: i32 },
+}
+</code></pre>
+<h3 id="trait---interfaces--behaviors"><a class="header" href="#trait---interfaces--behaviors"><code>trait</code> - Interfaces &amp; Behaviors</a></h3>
+<p>Define shared behavior contracts and method signatures.</p>
+<pre><code class="language-vex">trait Summary {
+    fn summarize() -&gt; string;
+}
+</code></pre>
+<h3 id="impl---implementation-blocks"><a class="header" href="#impl---implementation-blocks"><code>impl</code> - Implementation Blocks</a></h3>
+<p>Implement methods, trait implementations, or inherent functions on types.</p>
+<pre><code class="language-vex">impl Point {
+    fn distance() -&gt; i32 {
+        self.x * self.x + self.y * self.y
+    }
+}
+</code></pre>
+<h3 id="mod---modules--namespaces"><a class="header" href="#mod---modules--namespaces"><code>mod</code> - Modules &amp; Namespaces</a></h3>
+<p>Organize code into hierarchical submodules and namespaces.</p>
+<pre><code class="language-vex">mod math {
+    fn square(x: i32) -&gt; i32 { x * x }
+}
+</code></pre>
+<h3 id="use--export---imports--visibility"><a class="header" href="#use--export---imports--visibility"><code>use</code> &amp; <code>export</code> - Imports &amp; Visibility</a></h3>
+<p>Import paths and export symbols across module boundaries.</p>
+<pre><code class="language-vex">use math::square;
+export square;
+</code></pre>
+<h3 id="contract--invariant---formal-verification"><a class="header" href="#contract--invariant---formal-verification"><code>contract</code> &amp; <code>invariant</code> - Formal Verification</a></h3>
+<p>Define program contracts, preconditions, postconditions, and invariants.</p>
+<pre><code class="language-vex">contract SecureAccount {
+    invariant balance &gt;= 0;
+}
+</code></pre>
+<h3 id="newtype---zero-cost-wrapper-types"><a class="header" href="#newtype---zero-cost-wrapper-types"><code>newtype</code> - Zero-Cost Wrapper Types</a></h3>
+<p>Define distinct wrapper types around underlying primitives.</p>
+<pre><code class="language-vex">newtype UserId(i32);
+</code></pre>
+<hr>
+<h2 id="control-flow--error-handling"><a class="header" href="#control-flow--error-handling">Control Flow &amp; Error Handling</a></h2>
+<ul>
+<li><strong><code>if</code> / <code>else</code></strong>: Conditional branching expressions.</li>
+<li><strong><code>while</code></strong>: Condition-checked loops with bounded iteration safety limits.</li>
+<li><strong><code>break</code> / <code>continue</code></strong>: Loop control statements.</li>
+<li><strong><code>match</code></strong>: Exhaustive pattern matching over enums, results, and values.</li>
+<li><strong><code>?</code></strong>: Result error propagation operator (<code>let val = operation()?;</code>).</li>
+<li><strong><code>ok</code> / <code>err</code></strong>: Structured result constructors (<code>ok(42)</code>, <code>err("failed")</code>).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="command-line-reference"><a class="header" href="#command-line-reference">Command-line reference</a></h1>
+<p>The executable is available as <code>vexlang</code>; during development, use
+<code>cargo run --</code>. Every command accepts a file path or <code>-</code> for standard input.
+With no path, input is read from standard input.</p>
+<p><code>vexlang --version</code> (or <code>-V</code>) prints the package version used by the release
+metadata checks. <code>--json</code> or <code>--diagnostic-format=json</code> switches source
+diagnostics to a single machine-readable JSON object on standard error.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Behavior</th><th>Success</th></tr>
+</thead>
+<tbody>
+<tr><td><code>check FILE</code></td><td>Parse and semantically validate without running</td><td><code>0</code></td></tr>
+<tr><td><code>run FILE</code></td><td>Validate and evaluate the program</td><td><code>0</code></td></tr>
+<tr><td><code>repl</code></td><td>Stateful interactive session with multiline input and inspection commands</td><td><code>0</code></td></tr>
+<tr><td><code>project FILE</code></td><td>Validate and summarize a <code>vex.toml</code> project configuration</td><td><code>0</code></td></tr>
+<tr><td><code>fmt FILE</code></td><td>Validate and write the source to standard output</td><td><code>0</code></td></tr>
+<tr><td><code>test FILE</code></td><td>Validate and evaluate as an executable smoke test</td><td><code>0</code></td></tr>
+<tr><td><code>build FILE</code></td><td>Validate and print the typed textual IR (no machine code)</td><td><code>0</code></td></tr>
+<tr><td><code>ir FILE</code></td><td>Alias for <code>build</code>; print the typed textual IR</td><td><code>0</code></td></tr>
+<tr><td><code>target FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit textual target IR</td><td><code>0</code></td></tr>
+<tr><td><code>qbe FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit experimental QBE IL</td><td><code>0</code></td></tr>
+<tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code</td><td><code>0</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>vexlang FILE</code> remains a backwards-compatible alias for <code>vexlang run FILE</code>.
+Examples:</p>
+<pre><code class="language-sh">cargo run -- check examples/hello.vex
+cargo run -- run examples/hello.vex
+cargo run -- repl
+printf 'let n = 6; n * 7;' | cargo run -- run -
+cargo run -- fmt program.vex &gt; formatted.vex
+cargo run -- qbe program.vex &gt; program.ssa
+cargo run -- rust program.vex &gt; program.rs
+cargo run -- --json check program.vex
+</code></pre>
+<h2 id="exit-codes"><a class="header" href="#exit-codes">Exit codes</a></h2>
+<ul>
+<li><strong>0</strong> — command completed successfully.</li>
+<li><strong>1</strong> — source diagnostic or evaluation/test failure.</li>
+<li><strong>2</strong> — invalid command usage or an input/output error.</li>
+<li><strong>3</strong> — a recognized target/backend operation rejected the program as
+unsupported.</li>
+</ul>
+<p><code>build</code> does not create a fake executable or partial machine code. It emits a
+stable, human-readable IR artifact instead. <code>qbe</code> emits QBE IL for the verified
+scalar subset only; it does not assemble, link, or package a native executable.
+Unsupported language types and backend features fail explicitly with a source
+diagnostic or target-boundary error. If experimental QBE output is assembled
+and run, target runtime traps currently exit with <code>101</code> for checked <code>i32</code>
+overflow, <code>102</code> for division by zero, and <code>103</code> for signed division overflow.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="diagnostics"><a class="header" href="#diagnostics">Diagnostics</a></h1>
+<p>Errors are written to standard error. Each diagnostic has a stable error code,
+a source location, an underlined source range, and—when useful—a suggested
+next step:</p>
+<pre><code class="language-text">program.vex:1:1: error[E2001]: undefined variable `total`
+   1 | total;
+     | ^^^^^
+     = help: declare the variable with `let` before using it
+</code></pre>
+<p>The location uses one-based line and column numbers. Codes identify the
+pipeline stage:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code family</th><th>Stage</th></tr>
+</thead>
+<tbody>
+<tr><td><code>E100x</code></td><td>Parsing and AST construction</td></tr>
+<tr><td><code>E200x</code></td><td>Semantic and type analysis</td></tr>
+<tr><td><code>E300x</code></td><td>Evaluation and runtime failures</td></tr>
+<tr><td><code>E400x</code></td><td>IR lowering and unsupported tooling operations</td></tr>
+</tbody>
+</table>
+</div>
+<p>Examples include:</p>
+<pre><code class="language-text">program.vex:1:5: error[E1001]: parse error: ...
+     = help: check the preceding expression and add a semicolon if needed
+</code></pre>
+<pre><code class="language-text">program.vex:1:1: error[E3001]: division by zero
+     = help: ensure the divisor is not zero
+</code></pre>
+<p>Verifier failures use <code>E4003</code> and retain an inner machine-readable <code>IR001</code>
+(invalid invariant) or <code>IR002</code> (deferred feature) code and an IR path. Backend
+failures follow the same pattern and never produce partial output.</p>
+<h2 id="json-output"><a class="header" href="#json-output">JSON output</a></h2>
+<p>Pass <code>--json</code> or <code>--diagnostic-format=json</code> before any command to render source
+diagnostics as a machine-readable JSON object on standard error:</p>
+<pre><code class="language-sh">vexlang --json check program.vex
+</code></pre>
+<p>The object includes <code>severity</code>, <code>code</code>, <code>message</code>, <code>file</code>, byte <code>span</code>,
+one-based line/column positions, a <code>labels</code> array for secondary source ranges,
+and an optional <code>suggestion</code> field. When <code>check</code> can recover multiple semantic
+errors, JSON output is an array of diagnostic objects.</p>
+<p>Current recovery is intentionally conservative: undefined-variable and
+undefined-function checks use analyzer-native multi-error collection, and simple
+line-oriented parse recovery can report multiple parse diagnostics in one
+<code>check</code> invocation. Semantic diagnostics can also attach declaration-site labels
+for errors such as type mismatches. Broader recovery and full expression AST
+span attachment remain planned production-diagnostics work.</p>
+<p>Diagnostics currently retain a relevant source span at the pipeline boundary.
+Per-node span storage in every AST value is planned refinement work; the
+display contract and error codes are already stable for the CLI.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="features-and-limitations"><a class="header" href="#features-and-limitations">Features and limitations</a></h1>
+<h2 id="supported"><a class="header" href="#supported">Supported</a></h2>
+<p>The interpreter currently supports:</p>
+<ul>
+<li>integer, boolean, and string literals;</li>
+<li>inferred declarations and <code>i32</code>, <code>u64</code>, <code>bool</code>, and <code>string</code> annotations;</li>
+<li>checked arithmetic, comparisons, equality, boolean short-circuiting, and
+explicit integer conversions;</li>
+<li>variables, assignment, blocks, <code>if</code>/<code>else</code>, <code>while</code>, <code>break</code>, and <code>continue</code>;</li>
+<li>typed functions, returns, recursion, and bounded call depth;</li>
+<li>user-defined record declarations, construction, validated fields, and access;</li>
+<li>typed arrays, nested/empty literals, indexing, mutation, and bounds checks;</li>
+<li>enum values, exhaustive <code>match</code>, structured <code>Result</code> values, and <code>?</code>
+propagation in the interpreter;</li>
+<li>scoped string-keyed maps with <code>map</code> and <code>map_get</code>;</li>
+<li><code>print</code> and <code>println</code>;</li>
+<li>structured diagnostics and the <code>check</code>, <code>run</code>, <code>fmt</code>, <code>test</code>, <code>build</code>, <code>ir</code>,
+<code>target</code>, <code>qbe</code>, <code>repl</code>, and metadata-only <code>project</code> commands;</li>
+<li>a typed, deterministic, backend-independent textual IR;</li>
+<li>experimental QBE IL emission for the verified scalar target subset.</li>
+</ul>
+<h2 id="deferred-or-intentionally-unsupported"><a class="header" href="#deferred-or-intentionally-unsupported">Deferred or intentionally unsupported</a></h2>
+<p>Floating point values, resources (<code>res</code>), map mutation/iteration, generics,
+filesystem access, modules/imports, project execution, and lockfile semantics
+are deferred. Project metadata can be read from a small <code>vex.toml</code>. Record
+types are the first supported user-defined type. Milestone 9’s lightweight
+compatibility, diagnostic,
+generated-input, and opt-in performance smoke tests are now present; a
+coverage-guided fuzzing service remains deferred.</p>
+<p>Vex has no packaged native executable backend. <code>build</code> stops after typed
+lowering and emits textual IR; <code>qbe</code> emits experimental QBE IL only after the
+scalar target validator accepts the program. Floating point, resource, custom
+types, and other constructs are rejected explicitly by the lowering or target
+validation stage rather than silently approximated. Record lowering is
+supported for textual IR; native executable generation is not.</p>
+<h2 id="lowerable-ir-contract"><a class="header" href="#lowerable-ir-contract">Lowerable IR contract</a></h2>
+<p><code>build</code> and <code>ir</code> run a verifier before producing textual IR. That lowerable
+textual-IR subset is deliberately broader than the first native target and can
+represent <code>i32</code>, <code>u64</code>, <code>bool</code>, <code>unit</code>, arithmetic/boolean expressions,
+structured control flow, declared functions, record construction, and immutable
+arrays. The <code>vex-scalar-v1</code> target used by <code>target</code> and <code>qbe</code> is narrower:
+<code>i32</code>, <code>bool</code>, <code>unit</code>, declared function calls, structured branches, loops,
+loop control, and returns. Strings, <code>u64</code>, record field projection, indexed
+mutation, enums, <code>Result</code>, maps, and I/O builtins are deferred until their
+native representation and runtime ABI are specified. Failures carry a stable
+<code>IR001</code> (invalid invariant) or <code>IR002</code> (unsupported feature) code and a path
+into the IR. No target artifact is emitted after a failure.</p>
+<p>The backend contract specifies calling convention, entry point, checked scalar
+integer overflow/division traps, control-flow lowering, and runtime boundaries.
+The experimental QBE emitter lowers target traps to distinct process exits
+followed by <code>hlt</code>: <code>101</code> for checked <code>i32</code> overflow, <code>102</code> for division by
+zero, and <code>103</code> for signed division overflow (<code>i32::MIN / -1</code>). The <code>Backend</code>
+trait is the boundary used by the textual target emitter and experimental QBE
+emitter; Cranelift output is intentionally not implemented.</p>
+<h2 id="public-release-posture"><a class="header" href="#public-release-posture">Public release posture</a></h2>
+<p>Vex is suitable for a labeled <code>0.1.0-alpha.1</code> public release as an interpreter
+and typed-IR prototype. It is not presented as a production compiler. The MIT
+license grants redistribution rights, and security reports should be sent to
+<code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
+generics, modules, and project configuration remain post-alpha work.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="experimental-qbe-backend"><a class="header" href="#experimental-qbe-backend">Experimental QBE backend</a></h1>
+<p>The <code>qbe</code> command emits QBE IL for the verified <code>vex-scalar-v1</code> target subset.
+It is public but experimental: it produces an intermediate artifact and does not
+assemble, link, or package a native executable.</p>
+<h2 id="local-backend-smoke-tests"><a class="header" href="#local-backend-smoke-tests">Local backend smoke tests</a></h2>
+<p>Install QBE 1.3 into a local prefix:</p>
+<pre><code class="language-sh">PREFIX="$HOME/.local" ./scripts/install-qbe.sh
+</code></pre>
+<p>Then run the same backend-focused smoke tests used by CI:</p>
+<pre><code class="language-sh">./scripts/qbe-smoke.sh
+</code></pre>
+<p>The smoke script requires <code>qbe</code>, <code>cc</code>, and Cargo on <code>PATH</code>. It runs the QBE
+structural tests, compiled-vs-interpreted conformance cases, trap exit-code
+checks, and release-readiness CLI/fixture tests.</p>
+<h2 id="runtime-trap-exits"><a class="header" href="#runtime-trap-exits">Runtime trap exits</a></h2>
+<p>If emitted QBE is assembled and linked with a C driver that calls <code>vex_main</code>,
+target runtime failures exit with stable experimental codes:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Exit</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>101</code></td><td>checked <code>i32</code> overflow, including unary negation overflow</td></tr>
+<tr><td><code>102</code></td><td>division by zero</td></tr>
+<tr><td><code>103</code></td><td>signed division overflow, <code>i32::MIN / -1</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The emitter lowers traps to <code>call $exit(w CODE)</code> followed by <code>hlt</code> so QBE never
+falls through a failing target check.</p>
+<h2 id="current-scalar-subset"><a class="header" href="#current-scalar-subset">Current scalar subset</a></h2>
+<p>The QBE backend currently accepts only programs that pass <code>vex-scalar-v1</code>:</p>
+<ul>
+<li><code>i32</code>, <code>bool</code>, and <code>unit</code> values;</li>
+<li>declared function calls;</li>
+<li>local variables and assignment;</li>
+<li>structured <code>if</code>/<code>while</code> control flow;</li>
+<li><code>break</code>, <code>continue</code>, and <code>return</code>;</li>
+<li>checked scalar arithmetic and boolean short-circuiting.</li>
+</ul>
+<p>Strings, <code>u64</code>, records, arrays, maps, enums, <code>Result</code>, I/O builtins, and native
+executable packaging remain outside this target until their ABI/runtime behavior
+is specified.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="u64-target-design-notes"><a class="header" href="#u64-target-design-notes"><code>u64</code> target design notes</a></h1>
+<p>The interpreter supports <code>u64</code>, but the first QBE target intentionally rejects it.
+Adding <code>u64</code> should be a contract change, not an accidental widening of
+<code>vex-scalar-v1</code>.</p>
+<h2 id="proposed-path"><a class="header" href="#proposed-path">Proposed path</a></h2>
+<p>Introduce a new target contract, tentatively <code>vex-scalar-v2</code>, once the behavior
+below is specified and tested. Keep <code>vex-scalar-v1</code> stable for existing QBE
+smoke tests.</p>
+<h2 id="required-decisions"><a class="header" href="#required-decisions">Required decisions</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Area</th><th>Required decision</th></tr>
+</thead>
+<tbody>
+<tr><td>QBE representation</td><td>Use QBE <code>l</code> for <code>u64</code> values and loads/stores with 8-byte slots.</td></tr>
+<tr><td>Calling convention</td><td>Pass and return <code>u64</code> as ABI long arguments/results.</td></tr>
+<tr><td>Arithmetic</td><td>Use wrapping-free checked semantics matching the interpreter.</td></tr>
+<tr><td>Overflow traps</td><td>Reuse <code>101</code> for checked overflow unless target docs define finer codes.</td></tr>
+<tr><td>Division traps</td><td>Keep division by zero as <code>102</code>; unsigned division overflow has no <code>u64</code> analogue to <code>i32::MIN / -1</code>.</td></tr>
+<tr><td>Comparisons</td><td>Use unsigned QBE comparisons for <code>&lt;</code>/<code>&gt;</code> and equality for <code>==</code>.</td></tr>
+<tr><td>Conversions</td><td>Preserve checked <code>i32(value)</code> and <code>u64(value)</code> conversion semantics at the target boundary.</td></tr>
+<tr><td>Mixed integers</td><td>Reject implicit mixed-width arithmetic; require existing explicit conversions.</td></tr>
+<tr><td>Exit behavior</td><td>Document that process exit status still truncates to platform status width, so conformance tests should keep expected values small.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="implementation-checklist"><a class="header" href="#implementation-checklist">Implementation checklist</a></h2>
+<ol>
+<li>Add a second target contract instead of mutating <code>vex-scalar-v1</code> silently.</li>
+<li>Extend target validation to allow <code>IrType::U64</code> only under the new contract.</li>
+<li>Teach QBE emission to select word (<code>w</code>) or long (<code>l</code>) operations by IR type.</li>
+<li>Allocate 8-byte slots for <code>u64</code> locals and parameters.</li>
+<li>Add checked <code>u64</code> add/sub/mul and division-by-zero traps.</li>
+<li>Add checked conversion lowering for <code>i32(...)</code> and <code>u64(...)</code> if conversions
+are allowed through the target subset.</li>
+<li>Add compiled-vs-interpreted QBE conformance cases for boundaries:
+<ul>
+<li><code>0</code>, <code>1</code>, <code>u64::MAX</code> rejection paths where applicable;</li>
+<li><code>u64::MAX - 1 + 1</code> non-overflow;</li>
+<li><code>u64::MAX + 1</code> overflow trap;</li>
+<li>unsigned comparisons above <code>i32::MAX</code>;</li>
+<li>explicit conversion success/failure.</li>
+</ul>
+</li>
+</ol>
+<p>Until these items are complete, <code>u64</code> remains intentionally unsupported by the
+QBE target even though the interpreter accepts it.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="development-and-quality"><a class="header" href="#development-and-quality">Development and quality</a></h1>
+<h2 id="msrv"><a class="header" href="#msrv">MSRV</a></h2>
+<p>The minimum supported Rust version is <strong>1.85.0</strong>, required by the Rust 2024
+edition. Changes must compile and pass tests on both current stable Rust and
+Rust 1.85.0.</p>
+<h2 id="quality-gates"><a class="header" href="#quality-gates">Quality gates</a></h2>
+<p>Run the complete local gates from the repository root:</p>
+<pre><code class="language-sh">cargo fmt --all -- --check
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo +1.85.0 test --all-targets
+cargo +1.85.0 clippy --all-targets -- -D warnings
+mdbook test docs
+git diff --check
+</code></pre>
+<p>For QBE-specific work, install QBE and run the backend smoke suite:</p>
+<pre><code class="language-sh">PREFIX="$HOME/.local" ./scripts/install-qbe.sh
+./scripts/qbe-smoke.sh
+</code></pre>
+<p>Tests cover expression evaluation, malformed input, type and scope errors,
+control flow, functions, diagnostics, CLI behavior, and experimental QBE IL.
+CI runs formatting, tests, Clippy, QBE backend conformance/smoke tests,
+documentation tests, and the MSRV checks on every push and pull request.</p>
+<p>When changing syntax, update the authoritative grammar in <code>src/vex.pest</code>, the
+language reference, focused tests, and any diagnostic examples together.</p>
+<h2 id="release-validation"><a class="header" href="#release-validation">Release validation</a></h2>
+<p>Public alpha releases use the checked-in scripts:</p>
+<pre><code class="language-sh">./scripts/check-release.sh
+./scripts/release-artifacts.sh dist
+</code></pre>
+<p>The first command checks version and package consistency. The second creates a
+locked Cargo source archive and SHA-256 checksum. It never creates a native
+binary; <code>build</code> remains a deterministic textual IR command. See the
+<a href="#public-alpha-release-guide">public alpha release guide</a> for the publish checklist.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="public-alpha-release-guide"><a class="header" href="#public-alpha-release-guide">Public alpha release guide</a></h1>
+<p>Vex <code>0.1.0-alpha.1</code> is an interpreter and typed textual-IR prototype with an
+experimental scalar QBE IL emitter. A release publishes the Cargo source
+package; it does <strong>not</strong> publish a native binary or claim production compiler
+support.</p>
+<p>Typed arrays and indexing are included in this alpha’s interpreter and
+textual-IR scope. Maps and generics remain intentionally deferred.</p>
+<h2 id="publish-checklist"><a class="header" href="#publish-checklist">Publish checklist</a></h2>
+<ol>
+<li>Confirm the intended version in <code>Cargo.toml</code>, then update the matching
+changelog entry and README release badge/text.</li>
+<li>Run <code>./scripts/check-release.sh</code>. It checks Cargo metadata, prerelease
+naming, documentation references, and package inclusion.</li>
+<li>Run the complete <a href="#development-and-quality">quality gate</a>, including Rust 1.85.0 and
+<code>mdbook test docs</code>.</li>
+<li>Run <code>./scripts/release-artifacts.sh dist</code>.</li>
+<li>Verify the checksum from the artifact directory with
+<code>cd dist &amp;&amp; sha256sum --check vexlang-&lt;version&gt;.crate.sha256</code>.</li>
+<li>Inspect the archive with <code>tar tf</code> and confirm it contains source and docs,
+not a fabricated native executable.</li>
+<li>Create the matching annotated Git tag and publish the crate artifact and
+checksum from <code>dist/</code>.</li>
+<li>Record the tag, artifact checksum, and validation results in the release
+notes.</li>
+</ol>
+<p>The tag workflow repeats the metadata check and package smoke test. Artifact
+creation uses Cargo’s locked dependency resolution and is deterministic for a
+given source tree and lockfile.</p>
+<h2 id="current-blockers"><a class="header" href="#current-blockers">Current blockers</a></h2>
+<p>A production <code>0.1</code> compiler release is blocked by native executable artifacts,
+broader backend validation/runtime ABI work, maps, generics, modules, and
+project/package management. Arrays and records are supported in the alpha
+interpreter and textual IR; the remaining items are deliberate roadmap work,
+not alpha release failures.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="vex-milestones"><a class="header" href="#vex-milestones">Vex milestones</a></h1>
+<p>This roadmap tracks the work required to move Vex from an alpha interpreter to
+a usable language. Each milestone has an explicit quality gate.</p>
+<h2 id="milestone-1--stabilize-the-core-language"><a class="header" href="#milestone-1--stabilize-the-core-language">Milestone 1 — Stabilize the core language</a></h2>
+<ul>
+<li>Keep one authoritative grammar and parser contract.</li>
+<li>Preserve source locations in parse and semantic diagnostics.</li>
+<li>Define and enforce integer, boolean, inference, and assignment rules.</li>
+<li>Add malformed-input, boundary-value, scope, and regression tests.</li>
+<li>Add formatting, test, Clippy, and documentation CI gates.</li>
+</ul>
+<p><strong>Gate:</strong> <code>cargo fmt -- --check</code>, <code>cargo test</code>, <code>cargo clippy --all-targets -- -D warnings</code>, <code>mdbook test docs</code>, and the MSRV test on Rust 1.85.0 all pass.</p>
+<h2 id="milestone-2--complete-control-flow"><a class="header" href="#milestone-2--complete-control-flow">Milestone 2 — Complete control flow</a></h2>
+<ul>
+<li>Add <code>break</code> and <code>continue</code>.</li>
+<li>Define loop safety behavior.</li>
+<li>Test nested loops, branches, blocks, and mutation.</li>
+</ul>
+<p><strong>Status:</strong> Complete in the alpha interpreter.</p>
+<h2 id="milestone-3--add-functions"><a class="header" href="#milestone-3--add-functions">Milestone 3 — Add functions</a></h2>
+<ul>
+<li>Add declarations, parameters, calls, returns, recursion, and call-depth
+protection.</li>
+<li>Type-check arguments and return values.</li>
+</ul>
+<p><strong>Status:</strong> Complete in the alpha interpreter. Functions use <code>fn name(args) -&gt; type { ... }</code>; recursion is limited to 256 active calls.</p>
+<h2 id="milestone-4--expand-the-type-system"><a class="header" href="#milestone-4--expand-the-type-system">Milestone 4 — Expand the type system</a></h2>
+<ul>
+<li>Distinguish integer widths at runtime.</li>
+<li>Add explicit <code>i32(value)</code> and <code>u64(value)</code> conversions.</li>
+<li>User-defined types are intentionally deferred until the interpreter has
+records/constructors and a stable module model.</li>
+</ul>
+<p><strong>Status:</strong> Integer widths and checked conversions are implemented.</p>
+<h2 id="milestone-5--build-a-standard-library"><a class="header" href="#milestone-5--build-a-standard-library">Milestone 5 — Build a standard library</a></h2>
+<ul>
+<li>Add strings and safe console I/O (<code>print</code> and <code>println</code>).</li>
+<li>Arrays are covered by the typed-collections milestone; maps, files, errors,
+and modules are deferred to later milestones.</li>
+</ul>
+<p><strong>Status:</strong> Minimal string and console library implemented.</p>
+<h2 id="milestone-6--production-diagnostics"><a class="header" href="#milestone-6--production-diagnostics">Milestone 6 — Production diagnostics</a></h2>
+<ul>
+<li>Add spans to AST nodes and underline source ranges.</li>
+<li>Add error codes and actionable suggestions.</li>
+</ul>
+<p><strong>Status:</strong> The parser, AST builder, semantic analyzer, and evaluator now
+produce structured diagnostics with stable <code>E100x</code>/<code>E200x</code>/<code>E300x</code> codes,
+source locations, underlines, targeted help, and initial machine-readable JSON
+output via <code>--json</code>. AST construction now retains top-level statement spans as
+the first per-node span foundation. Full expression/declaration AST span
+typed AST span attachment remains a follow-up refinement. Declaration-site
+labels are available for selected semantic errors. Analyzer-native multi-error
+collection has started for undefined-variable and undefined-function diagnostics
+in <code>check</code>, alongside conservative line-oriented parse recovery; broader
+recovery remains future work.</p>
+<h2 id="milestone-7--tooling"><a class="header" href="#milestone-7--tooling">Milestone 7 — Tooling</a></h2>
+<ul>
+<li>Add <code>check</code>, <code>run</code>, <code>fmt</code>, <code>test</code>, and <code>build</code> commands.</li>
+<li>Define project configuration and lockfile behavior.</li>
+</ul>
+<p><strong>Status:</strong> The five commands are available with documented exit statuses and
+stdin support. <code>build</code> reports the deliberate interpreter-only limitation
+instead of pretending to compile. Project configuration and lockfile
+semantics are deferred until a package/project model is designed.</p>
+<p>Documentation for the syntax, commands, diagnostics, feature status, MSRV,
+and quality gates is maintained as part of the mdBook.</p>
+<h2 id="milestone-8--compilation"><a class="header" href="#milestone-8--compilation">Milestone 8 — Compilation</a></h2>
+<ul>
+<li>Add a typed, backend-independent lowered IR and a deterministic text form.</li>
+<li>Make <code>build</code> validate and lower without claiming to produce machine code.</li>
+<li>Keep backend output behind explicit target validation; unsupported constructs
+must fail explicitly.</li>
+<li>Differential-test interpreter results and lowering for supported expressions,
+control flow, functions, and types.</li>
+</ul>
+<p><strong>Status:</strong> The typed textual IR and <code>build</code>/<code>ir</code> artifact are implemented.
+Experimental QBE IL emission is available for the verified scalar subset;
+machine-code executable artifacts remain deferred.</p>
+<h2 id="milestone-9--compatibility-and-performance"><a class="header" href="#milestone-9--compatibility-and-performance">Milestone 9 — Compatibility and performance</a></h2>
+<ul>
+<li>Add fuzzing, property tests, golden diagnostics, benchmarks, and a language
+compatibility suite.</li>
+</ul>
+<p><strong>Status:</strong> The release-readiness suite now covers interpreter/lowering
+compatibility, a stable CLI diagnostic fixture, deterministic generated-input
+tests, and an opt-in performance smoke test without adding heavyweight
+dependencies. Coverage-guided fuzzing and statistically rigorous benchmarks
+remain deferred.</p>
+<h2 id="milestone-10--public-alpha-hardening"><a class="header" href="#milestone-10--public-alpha-hardening">Milestone 10 — Public alpha hardening</a></h2>
+<ul>
+<li>Check CLI, Cargo metadata, changelog, and documentation version consistency.</li>
+<li>Produce locked Cargo source artifacts with checksums.</li>
+<li>Run deterministic generated-input, compatibility, and textual-IR smoke tests.</li>
+<li>Validate release packages on tagged CI builds.</li>
+</ul>
+<p><strong>Status:</strong> Complete for the <code>0.1.0-alpha.1</code> interpreter and typed-IR release.
+Native binaries are intentionally not produced.</p>
+<h2 id="milestone-11--01-release"><a class="header" href="#milestone-11--01-release">Milestone 11 — 0.1 release</a></h2>
+<ul>
+<li>Freeze syntax, remove stale prototype artifacts, publish language
+documentation, and maintain CI for all quality gates.</li>
+</ul>
+<p><strong>Status:</strong> The repository is ready for a labeled <code>0.1.0-alpha.1</code> public
+release as an interpreter and typed-IR prototype. The MIT license and security
+contact are in place. A production <code>0.1</code> compiler release remains blocked by
+native executable artifacts, broader backend validation, and deferred language
+features.</p>
+<h2 id="milestone-12--typed-collections"><a class="header" href="#milestone-12--typed-collections">Milestone 12 — Typed collections</a></h2>
+<p><strong>Status:</strong> Complete for arrays: literals, typed annotations, nested and empty
+arrays, indexing, mutation, semantic diagnostics, and textual IR lowering.
+Maps, generics, and structured error/result values remain deferred.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="contributing"><a class="header" href="#contributing">Contributing</a></h1>
+<p>Vex welcomes focused language experiments, regression tests, documentation
+improvements, diagnostics work, and roadmap contributions.</p>
+<p>Start with the root
+<a href="../../CONTRIBUTING.html"><code>CONTRIBUTING.md</code></a>, which defines the complete setup,
+review, language-change, and pull-request expectations.</p>
+<h2 id="community"><a class="header" href="#community">Community</a></h2>
+<p>The current project contact is <strong><code>darkstar_dev</code> on Discord</strong>. A dedicated
+server and invite link are not established yet. Until then, use GitHub issues
+and discussions for public questions and contribution coordination.</p>
+<p>Use the address in <a href="../../SECURITY.html"><code>SECURITY.md</code></a> for private security
+reports.</p>
+<p>Copy-ready text for the future <code>#welcome</code> and <code>#rules</code> Discord channels is
+maintained in the root <a href="../../CONTRIBUTING.html"><code>CONTRIBUTING.md</code></a>.</p>
+<h2 id="required-checks"><a class="header" href="#required-checks">Required checks</a></h2>
+<pre><code class="language-sh">cargo fmt --all -- --check
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo +1.85.0 test --all-targets
+cargo +1.85.0 clippy --all-targets -- -D warnings
+mdbook test docs
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
