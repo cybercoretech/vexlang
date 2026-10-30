@@ -22,6 +22,9 @@ pub enum Type {
     Array(Box<Type>),
 }
 
+/// A trait method signature: method name, parameters, and return type.
+pub type MethodSig = (String, Vec<(String, Type)>, Type);
+
 #[derive(Debug, Clone, PartialEq)] // Add PartialEq here
 pub enum Op {
     And,
@@ -128,7 +131,7 @@ pub enum Stmt {
     // Custom language constructs
     Trait {
         name: String,
-        methods: Vec<(String, Vec<(String, Type)>, Type)>,
+        methods: Vec<MethodSig>,
     },
     Impl {
         trait_name: Option<String>,

@@ -138,11 +138,11 @@ impl RustBackend {
                 for (m_name, m_params, m_ret) in methods {
                     let param_strs: Vec<String> = m_params
                         .iter()
-                        .map(|(p_name, p_ty)| format!("{}: {}", p_name, self.emit_type(p_ty)))
+                        .map(|(p_name, p_ty)| format!("{}: {}", p_name, Self::emit_type(p_ty)))
                         .collect();
                     out.push_str(&format!("{ind}    fn {m_name}({})", param_strs.join(", ")));
                     if !matches!(m_ret, Type::Unit) {
-                        out.push_str(&format!(" -> {}", self.emit_type(m_ret)));
+                        out.push_str(&format!(" -> {}", Self::emit_type(m_ret)));
                     }
                     out.push_str(";\n");
                 }
@@ -185,7 +185,7 @@ impl RustBackend {
             Stmt::Newtype { name, underlying } => {
                 format!(
                     "{ind}#[derive(Debug, Clone, PartialEq)]\npub struct {name}(pub {});\n",
-                    self.emit_type(underlying)
+                    Self::emit_type(underlying)
                 )
             }
             Stmt::Contract { name, .. } => {
@@ -236,7 +236,7 @@ impl RustBackend {
 
         let param_strs: Vec<String> = params
             .iter()
-            .map(|(p_name, p_ty)| format!("{}: {}", p_name, self.emit_type(p_ty)))
+            .map(|(p_name, p_ty)| format!("{}: {}", p_name, Self::emit_type(p_ty)))
             .collect();
         output.push_str(&param_strs.join(", "));
 
@@ -244,7 +244,7 @@ impl RustBackend {
 
         if !matches!(return_type, Type::Unit) {
             output.push_str(" -> ");
-            output.push_str(&self.emit_type(return_type));
+            output.push_str(&Self::emit_type(return_type));
         }
 
         output.push(' ');
@@ -263,7 +263,7 @@ impl RustBackend {
             output.push_str("    pub ");
             output.push_str(field_name);
             output.push_str(": ");
-            output.push_str(&self.emit_type(field_ty));
+            output.push_str(&Self::emit_type(field_ty));
             output.push_str(",\n");
         }
 
@@ -292,7 +292,7 @@ impl RustBackend {
                 let field_strs: Vec<String> = variant
                     .fields
                     .iter()
-                    .map(|(f_name, f_ty)| format!("{}: {}", f_name, self.emit_type(f_ty)))
+                    .map(|(f_name, f_ty)| format!("{}: {}", f_name, Self::emit_type(f_ty)))
                     .collect();
                 output.push_str(&field_strs.join(", "));
                 output.push_str(" }");
@@ -312,7 +312,7 @@ impl RustBackend {
 
         if !matches!(ty, Type::Inferred) {
             output.push_str(": ");
-            output.push_str(&self.emit_type(ty));
+            output.push_str(&Self::emit_type(ty));
         }
 
         output.push_str(" = ");
@@ -541,7 +541,7 @@ impl RustBackend {
         }
     }
 
-    fn emit_type(&self, ty: &Type) -> String {
+    fn emit_type(ty: &Type) -> String {
         match ty {
             Type::Inferred => "_".to_string(),
             Type::I32 => "i32".to_string(),
@@ -552,7 +552,7 @@ impl RustBackend {
             Type::Unit => "()".to_string(),
             Type::Res => "/* res */ ()".to_string(),
             Type::Custom(name) => name.clone(),
-            Type::Array(inner) => format!("Vec<{}>", self.emit_type(inner)),
+            Type::Array(inner) => format!("Vec<{}>", Self::emit_type(inner)),
         }
     }
 
@@ -620,7 +620,9 @@ let p = Point { x: 10, y: 20 };
         let rust_code = backend.emit_rust(&stmts);
 
         assert!(rust_code.contains("#[derive(Debug, Clone, PartialEq)]\npub struct Point"));
-        assert!(rust_code.contains("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Status"));
+        assert!(
+            rust_code.contains("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Status")
+        );
         assert!(rust_code.contains("Point { x: 10, y: 20 }"));
     }
 
