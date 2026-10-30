@@ -276,6 +276,8 @@ def render(data: dict) -> str:
         for c in categories
     )
 
+    body_sections = "\n".join(sections)
+
     return f"""<!doctype html>
 <html lang="en" data-theme="neon-night">
 <head>
@@ -357,7 +359,7 @@ def render(data: dict) -> str:
 </section>
 
 <div class="shell kw-body" id="kw-list">
-{sections}
+{body_sections}
 </div>
 
 <section class="shell kw-empty" id="kw-empty" hidden>
