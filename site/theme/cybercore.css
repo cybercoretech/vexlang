@@ -21,6 +21,9 @@ html[data-theme] body:after{background-image:linear-gradient(color-mix(in srgb,v
 /* the code canvas is a dark editor surface in every palette, so pin its
    tokens instead of letting light themes wash out the syntax colours */
 .canvas{--cyan:#62e7ff;--lime:#78ff38;--ink:#f3f6ff;--muted:#a2b4c3;--dim:#718897;--line:#1e3b4b}
+/* the shared contact block already ends with its own sign-off rule, so the
+   footer only needs a small gap instead of its default 7rem page break */
+.contact-band + .footer{margin-top:2rem;padding-top:1.25rem}
 /* the status grid's own margin shorthand cancels .shell's auto centering */
 .status-grid{margin-inline:auto}
 .button.primary{color:var(--void)}
