@@ -51,6 +51,9 @@ STATUS_DETAIL = {
 
 TYPES = {"i32", "u64", "f64", "bool", "string", "res", "u8", "unit"}
 
+CAT_RE = re.compile(r"^##\s+Category\s+(\d+):\s*(.+?)\s*\((\d+)\s*items?\)\s*$")
+KW_RE = re.compile(r"^###\s+(\d+)\.\s+`([^`]+)`\s*-\s*(.+?)\s*$")
+
 
 def grammar_words() -> set[str]:
     """Every KW_* literal in the grammar, i.e. words that cannot be identifiers."""
@@ -59,26 +62,24 @@ def grammar_words() -> set[str]:
 
 
 def parse_proposal(text: str) -> list[dict]:
-    """Split the document into per-keyword records."""
+    """Split the proposal into per-keyword records, tracking the current category."""
     entries = []
     category = None
-    # `## Category 1: Memory & Resource Management (8 items)`
-    cat_re = re.compile(r"^##\s+Category\s+(\d+):\s*(.+?)\s*\((\d+)\s*items?\)\s*$")
-    # `### 1. \`arena\` - Arena Allocator`
-    kw_re = re.compile(r"^###\s+(\d+)\.\s+`([^`]+)`\s*-\s*(.+?)\s*$")
-
-    blocks = re.split(r"^(?=###\s+\d+\.)", text, flags=re.MULTILINE)
+    blocks = re.split(r"^(?=##\s+Category\s+\d+|###\s+\d+\.)", text, flags=re.MULTILINE)
     for block in blocks:
-        for line in block.splitlines():
-            m = cat_re.match(line)
-            if m:
-                category = {
-                    "index": int(m.group(1)),
-                    "name": m.group(2),
-                    "count": int(m.group(3)),
-                }
-                break
-        m = kw_re.match(block.splitlines()[0]) if block.strip() else None
+        lines = block.strip().splitlines()
+        if not lines:
+            continue
+        first = lines[0]
+        m = CAT_RE.match(first)
+        if m:
+            category = {
+                "index": int(m.group(1)),
+                "name": m.group(2),
+                "count": int(m.group(3)),
+            }
+            continue
+        m = KW_RE.match(first)
         if not m or category is None:
             continue
         entries.append({
