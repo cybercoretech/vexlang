@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="neon-night">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,15 +29,102 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
 @media(max-width:860px){.hero{grid-template-columns:1fr;padding-top:4.5rem}.editor{min-height:0}.alpha{grid-template-columns:1fr}}@media(max-width:600px){.shell{width:calc(100% - 1.5rem)}.nav a:not(:last-child){display:none}.hero h1{font-size:clamp(4rem,18vw,6rem)}.editor{grid-template-columns:1fr}.code{border-right:0;border-bottom:1px solid var(--line)}.status-grid,.cards{grid-template-columns:1fr}.section{padding-top:5rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
+<link rel="stylesheet" href="theme/cybercore.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="shell header"><a class="brand" href="./"><img src="assets/vex-mark-grid.svg" alt=""><span>VexLang</span></a><nav class="nav" aria-label="Primary navigation"><a href="#language">language</a><a href="#milestones-section">milestones</a><a href="#playground">playground</a><a href="docs/index.html">docs</a><a href="https://github.com/cybercoretech/vexlang">github ↗</a><a data-cybercore-master-docs href="https://cybercoretech.github.io/cybercore/docs.html" style="color:#22e6ff;border:1px solid #263454;border-radius:999px;padding:7px 12px;text-decoration:none;font:600 .7rem ui-monospace,monospace;letter-spacing:.08em;white-space:nowrap">MASTER DOCS ↗</a></nav></header>
+<header class="shell header">
+  <a class="brand-lockup" href="./" aria-label="VexLang home">
+    <span class="brand-mark">V</span><span class="brand-name">EXLANG</span>
+  </a>
+  <nav class="main-nav" aria-label="Primary navigation">
+    <a href="#language">language</a>
+    <a href="#milestones-section">milestones</a>
+    <a href="#playground">playground</a>
+    <a href="docs/index.html">docs</a>
+    <a href="https://github.com/cybercoretech/vexlang" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
+  </nav>
+  <button class="theme-trigger" type="button" data-theme-open aria-haspopup="dialog"><span class="theme-dot"></span><span>CYBERCORE THEME</span><b id="theme-current">—</b><span aria-hidden="true">⌄</span></button>
+</header>
 <main id="main">
 <section class="shell hero" id="playground"><div><div class="eyebrow">CYBERCORE LANGUAGE LAB</div><h1>Vex<span>Lang</span></h1><h2>Small language. Sharp edges.</h2><p>An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.</p><div class="actions"><a class="button primary" href="https://github.com/cybercoretech/vexlang#quick-start">Run Vex <span>↗</span></a><a class="button" href="https://github.com/cybercoretech/vexlang/blob/main/docs/src/language.md">Read the language reference <span>→</span></a></div><div class="release"><i></i> 0.1.0-alpha.1 · Rust 1.85+ · MIT</div></div>
-<div class="canvas"><div class="tabs"><span class="tab active">main.vex</span><span class="tab">typed IR</span><span class="tab">qbe</span><span class="canvas-meta">VEXLANG 0.1.0-ALPHA.1</span></div><div class="editor"><pre class="code"><span class="line"><span class="ln">1</span><span class="comment">// a tiny Vex program</span></span><span class="line"><span class="ln">2</span><span class="kw">fn</span> main() -&gt; <span class="type">i32</span> {</span><span class="line"><span class="ln">3</span>  <span class="kw">let</span> answer = (<span class="value">10</span> + <span class="value">2</span>) * <span class="value">3</span>;</span><span class="line"><span class="ln">4</span>  <span class="kw">return</span> answer;</span><span class="line"><span class="ln">5</span>}</span></pre><pre class="ir"><span class="ir-title">TYPED IR / VERIFIED</span><span class="line">%0: <span class="type">i32</span> = const 10</span><span class="line">%1: <span class="type">i32</span> = const 2</span><span class="line">%2: <span class="type">i32</span> = add %0, %1</span><span class="line">%3: <span class="type">i32</span> = const 3</span><span class="line">%4: <span class="type">i32</span> = mul %2, %3</span><span class="annotation">answer: i32</span></pre></div><div class="canvas-foot"><span>VEX <b>›</b> CHECK <b>›</b> LOWER <b>›</b> RUN</span><span>same source. clearer computation.</span></div></div></section>
+<div class="canvas"><div class="tabs"><span class="tab active">main.vex</span><span class="tab">typed IR</span><span class="tab">qbe</span><span class="canvas-meta">VEXLANG 0.1.0-ALPHA.1</span></div><div class="editor"><pre class="code"><span class="line"><span class="ln">1</span><span class="comment">// a tiny Vex program</span></span><span class="line"><span class="ln">2</span><span class="kw">let</span> answer = (<span class="value">10</span> + <span class="value">2</span>) * <span class="value">3</span>;</span><span class="line"><span class="ln">3</span>answer;</span></pre><pre class="ir"><span class="ir-title">TYPED IR / VERIFIED</span><span class="line">let answer: <span class="type">i32</span> = [<span class="type">i32</span>]((<span class="value">10</span> Add <span class="value">2</span>) Mul <span class="value">3</span>);</span><span class="line">[<span class="type">i32</span>]answer;</span><span class="annotation">run → Int(36)</span></pre></div><div class="canvas-foot"><span>VEX <b>›</b> CHECK <b>›</b> LOWER <b>›</b> RUN</span><span>same source. clearer computation.</span></div></div></section>
 <section class="shell status-grid" aria-label="VexLang status"><article class="status online"><h3>01 / RUN</h3><strong>INTERPRETER</strong><p>status: ready</p></article><article class="status verified"><h3>02 / CHECK</h3><strong>TYPED IR</strong><p>status: valid</p></article><article class="status experimental"><h3>03 / LOWER</h3><strong>QBE IL / RUST</strong><p>status: active</p></article></section>
-<section class="shell section" id="language"><div class="section-kicker">// language surface</div><h2>Expressive enough to explore. Small enough to understand.</h2><p class="intro">Vex keeps the core visible: declarations, expressions, control flow, functions, records, arrays, modules, traits, impls, contracts, newtypes, diagnostics, and a typed intermediate representation.</p><div class="cards"><article class="card"><div class="card-index">[01] SYNTAX</div><h3>Readable by design</h3><p>Minimal statements, familiar operators, typed functions, records, enums, modules, traits, impls, contracts, and newtypes.</p><code>let · fn · mod · trait · impl</code></article><article class="card"><div class="card-index">[02] SEMANTICS</div><h3>Checkable by default</h3><p>Bounded execution, checked arithmetic, explicit diagnostics, and hard failures when a program crosses a supported boundary.</p><code>parse · infer · verify</code></article><article class="card"><div class="card-index">[03] LOWERING</h3><h3>Transparent by construction</h3><p>Build deterministic textual IR first, then explore verified scalar QBE IL or standalone Rust transpilation via `vexlang rust`.</p><code>IR · target · rust</code></article></div></section>
+<section class="shell section" id="examples">
+<div class="section-kicker">// runnable surface</div>
+<h2>Three programs. Real output.</h2>
+<p class="intro">Every snippet below was run against the current interpreter before it was published. Open a card to see the source and what the toolchain emits.</p>
+<div class="examples">
+  <button class="example" type="button" data-dialog="ex-records"><span class="example-index">[01] RECORDS</span><strong>Named fields, checked</strong><p>Construction must supply every field exactly once.</p><span class="example-out">run → Int(5)</span></button>
+  <button class="example" type="button" data-dialog="ex-loop"><span class="example-index">[02] CONTROL FLOW</span><strong>Bounded loops</strong><p>Checked arithmetic, and a hard stop after a million iterations.</p><span class="example-out">run → Int(3)</span></button>
+  <button class="example" type="button" data-dialog="ex-lower"><span class="example-index">[03] LOWERING</span><strong>Overflow becomes a trap</strong><p>The scalar QBE target lowers checked addition to an explicit exit.</p><span class="example-out">qbe → vex-scalar-v1</span></button>
+</div>
+
+<dialog class="example-dialog" id="ex-records" aria-labelledby="ex-records-title">
+  <div class="dialog-top"><span>VEXLANG / EXAMPLE 01</span><button type="button" data-dialog-close aria-label="Close">×</button></div>
+  <div class="dialog-body">
+    <p class="eyebrow">RECORDS</p>
+    <h2 id="ex-records-title">Named fields, checked</h2>
+    <p>Construction must provide every field exactly once with a compatible value; unknown field access is rejected.</p>
+    <pre><code>record Point { x: i32, y: i32 }
+let p: Point = Point { x: 2, y: 3 };
+p.x + p.y;</code></pre>
+    <pre class="out"><code>$ vexlang run point.vex
+Int(5)</code></pre>
+  </div>
+</dialog>
+
+<dialog class="example-dialog" id="ex-loop" aria-labelledby="ex-loop-title">
+  <div class="dialog-top"><span>VEXLANG / EXAMPLE 02</span><button type="button" data-dialog-close aria-label="Close">×</button></div>
+  <div class="dialog-body">
+    <p class="eyebrow">CONTROL FLOW</p>
+    <h2 id="ex-loop-title">Bounded loops</h2>
+    <p>Loops stop with a runtime error after one million iterations, so a runaway program fails instead of hanging.</p>
+    <pre><code>let x = 0;
+while x &lt; 3 { x = x + 1; }
+x;</code></pre>
+    <pre class="out"><code>$ vexlang run loop.vex
+Int(3)</code></pre>
+  </div>
+</dialog>
+
+<dialog class="example-dialog" id="ex-lower" aria-labelledby="ex-lower-title">
+  <div class="dialog-top"><span>VEXLANG / EXAMPLE 03</span><button type="button" data-dialog-close aria-label="Close">×</button></div>
+  <div class="dialog-body">
+    <p class="eyebrow">LOWERING</p>
+    <h2 id="ex-lower-title">Overflow becomes a trap</h2>
+    <p>Checked <code>i32</code> addition is lowered to a sign test and an explicit <code>exit(101)</code>, so QBE never falls through a failing check.</p>
+    <pre><code># QBE intermediate language emitted by Vex
+# Target: vex-scalar-v1
+
+function w $add(w %p_a, w %p_b) {
+@start
+    %v_a_0 =l alloc4 4
+    %v_b_1 =l alloc4 4
+    storew %p_a, %v_a_0
+    storew %p_b, %v_b_1
+    %t0 =w loadw %v_a_0
+    %t1 =w loadw %v_b_1
+    %t2 =w add %t0, %t1
+    %t3 =w xor %t2, %t0
+    %t4 =w xor %t2, %t1
+    %t5 =w and %t3, %t4
+    %t6 =w csltw %t5, 0
+    jnz %t6, @trap_0, @trap_ok_1
+@trap_0
+    call $exit(w 101)
+    hlt
+@trap_ok_1
+    ret %t2
+}</code></pre>
+    <pre class="out"><code>$ vexlang rust add.vex
+pub fn add(a: i32, b: i32) -> i32 {
+    (a + b)
+}</code></pre>
+  </div>
+</dialog>
+</section>
+<section class="shell section" id="language"><div class="section-kicker">// language surface</div><h2>Expressive enough to explore. Small enough to understand.</h2><p class="intro">Vex keeps the core visible: declarations, expressions, control flow, functions, records, arrays, modules, traits, impls, contracts, newtypes, diagnostics, and a typed intermediate representation.</p><div class="cards"><article class="card"><div class="card-index">[01] SYNTAX</div><h3>Readable by design</h3><p>Minimal statements, familiar operators, typed functions, records, enums, modules, traits, impls, contracts, and newtypes.</p><code>let · fn · mod · trait · impl</code></article><article class="card"><div class="card-index">[02] SEMANTICS</div><h3>Checkable by default</h3><p>Bounded execution, checked arithmetic, explicit diagnostics, and hard failures when a program crosses a supported boundary.</p><code>parse · infer · verify</code></article><article class="card"><div class="card-index">[03] LOWERING</div><h3>Transparent by construction</h3><p>Build deterministic textual IR first, then explore verified scalar QBE IL or standalone Rust transpilation via `vexlang rust`.</p><code>IR · target · rust</code></article></div></section>
 <section class="shell section" id="milestones-section"><div class="section-kicker">// project roadmap & milestones</div><h2>Built step-by-step. Verified at every phase.</h2><p class="intro">Explore the Vexlang milestone roadmap instantly in the scrollable view below.</p>
 <div class="milestone-box">
   <div class="milestone-item">
@@ -78,7 +165,19 @@ cargo run -- rust program.vex</pre></div></div></section>
   <section class="contact-band" aria-label="Contact Cybercore Tech" style="position:relative;z-index:1;padding:3rem 0 2.5rem;border-top:1px solid var(--line,#32303e)">
     <div style="width:min(1160px,calc(100% - 44px));margin-inline:auto"><cybercore-contact><a href="mailto:dev@cybercoretech.net">dev@cybercoretech.net</a></cybercore-contact></div>
   </section>
-<footer class="shell footer"><span>VEXLANG // CYBERCORE LANGUAGE LAB</span><div class="links"><a href="https://github.com/cybercoretech/vexlang">GitHub ↗</a><a href="docs/index.html">Docs ↗</a><a href="https://discord.gg/vBMcK5wAx">Discord ↗</a><span>MIT · 0.1.0-alpha.1</span></div></footer>
+<footer class="shell footer">
+  <span>VEXLANG // CYBERCORE LANGUAGE LAB</span>
+  <div class="links">
+    <a href="https://github.com/cybercoretech/vexlang">GitHub ↗</a>
+    <a href="docs/index.html">Docs ↗</a>
+    <a href="https://discord.gg/vBMcK5wAx">Discord ↗</a>
+    <a data-cybercore-master-docs href="https://cybercoretech.github.io/cybercore/docs.html">Master docs ↗</a>
+    <span>MIT · 0.1.0-alpha.1</span>
+  </div>
+</footer>
+  <script src="theme/theme-catalog.js"></script>
+  <script src="theme/cybercore.js"></script>
+  <script src="scripts/hero-cards.js"></script>
   <script type="module" src="https://cybercoretech.github.io/kit/contact.js"></script>
 </body>
 </html>
