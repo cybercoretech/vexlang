@@ -1,6 +1,16 @@
-/* Cybercore theme layer for the VexLang landing page.
+/* Cybercore theme layer for the VexLang site.
    Loaded after the inline <style> so the shared --theme-* custom properties
    written by theme/cybercore.js can be mapped onto this site's own tokens. */
+:root{--void:#080d15;--panel:#0d1720;--panel2:#101d28;--ink:#f3f6ff;--muted:#a2b4c3;--dim:#718897;--line:#1e3b4b;--lime:#78ff38;--cyan:#62e7ff;--amber:#ffbf4a;--mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:var(--void);font-family:var(--sans);overflow-x:hidden}
+body:before{content:'';position:fixed;inset:0;z-index:-2;background:radial-gradient(circle at 75% 20%,rgba(98,231,255,.09),transparent 30rem),radial-gradient(circle at 14% 80%,rgba(120,255,56,.07),transparent 25rem),var(--void)}
+body:after{content:'';position:fixed;inset:0;z-index:-1;opacity:.35;pointer-events:none;background-image:linear-gradient(rgba(98,231,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(98,231,255,.055) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(#000,transparent 80%)}
+a{color:inherit}
+.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}
+.skip{position:absolute;left:-9999px;top:1rem}.skip:focus{left:1rem;z-index:5;padding:.7rem 1rem;background:var(--lime);color:var(--void)}
+.mono{font-family:var(--mono)}
 html[data-theme]{--void:var(--theme-bg,#080d15);--panel:var(--theme-panel,#0d1720);--panel2:color-mix(in srgb,var(--theme-panel,#0d1720) 72%,var(--theme-accent,#62e7ff) 6%);--ink:var(--theme-text,#f3f6ff);--muted:var(--theme-muted,#a2b4c3);--line:var(--theme-line,#1e3b4b);--cyan:var(--theme-accent,#62e7ff);--lime:var(--theme-success,#78ff38);--amber:var(--theme-warning,#ffbf4a)}
 html[data-theme] body:before{background:radial-gradient(circle at 75% 20%,color-mix(in srgb,var(--cyan) 9%,transparent),transparent 30rem),radial-gradient(circle at 14% 80%,color-mix(in srgb,var(--lime) 7%,transparent),transparent 25rem),var(--void)}
 html[data-theme] body:after{background-image:linear-gradient(color-mix(in srgb,var(--cyan) 6%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--cyan) 6%,transparent) 1px,transparent 1px)}

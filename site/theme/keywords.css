@@ -2,6 +2,11 @@
    scripts/build-keywords.py. Consumes the same Cybercore tokens as the rest
    of the site, so palettes swap for free. */
 
+.eyebrow{color:var(--cyan);font:600 .7rem var(--mono);letter-spacing:.18em}
+.button{display:inline-flex;align-items:center;gap:.7rem;padding:.78rem 1rem;border:1px solid var(--line);color:var(--ink);background:rgba(13,23,32,.8);font:600 .72rem var(--mono);text-decoration:none}
+.button:hover,.button:focus-visible{border-color:var(--lime);color:var(--ink)}
+.button.primary{border-color:var(--lime);background:var(--lime);color:#08100a}
+
 .kw-hero{padding:6.6rem 0 3.4rem}
 .kw-hero h1{margin:.8rem 0 .7rem;font-size:clamp(3rem,7vw,5.6rem);line-height:.92;letter-spacing:-.08em}
 .kw-hero h1 span{color:var(--cyan);text-shadow:0 0 42px color-mix(in srgb,var(--cyan) 30%,transparent)}
