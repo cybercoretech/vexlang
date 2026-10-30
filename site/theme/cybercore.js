@@ -102,15 +102,19 @@
   }
 
   function headerMarkup() {
+    // Landing pages use in-page anchors; the keyword index sits one level down.
+    const base = './';
+    const docs = location.pathname.endsWith('keywords.html') ? './docs/index.html' : 'docs/index.html';
     return `
-      <a class="brand-lockup" href="./" aria-label="VexLang home">
+      <a class="brand-lockup" href="${base}" aria-label="VexLang home">
         <span class="brand-mark">V</span><span class="brand-name">EXLANG</span>
       </a>
       <nav class="main-nav" aria-label="Primary navigation">
-        <a href="#language">language</a>
-        <a href="#milestones-section">milestones</a>
-        <a href="#playground">playground</a>
-        <a href="docs/index.html">docs</a>
+        <a href="${base}#language">language</a>
+        <a href="${base}#milestones-section">milestones</a>
+        <a href="${base}#playground">playground</a>
+        <a href="${base}keywords.html">keywords</a>
+        <a href="${base}${docs}">docs</a>
         <a href="https://github.com/${REPO}" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
       </nav>
       <button class="theme-trigger" type="button" data-theme-open aria-haspopup="dialog"><span class="theme-dot"></span><span>CYBERCORE THEME</span><b id="theme-current">—</b><span aria-hidden="true">⌄</span></button>

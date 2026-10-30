@@ -7,6 +7,21 @@
 <meta name="description" content="VexLang is a small experimental programming language and typed-IR prototype from the Cybercore ecosystem.">
 <title>VexLang // Small language. Sharp edges.</title>
 <link rel="icon" type="image/svg+xml" href="assets/vex-mark-grid.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/icons/favicon-48.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta property="og:title" content="VexLang // Small language. Sharp edges.">
+<meta property="og:description" content="An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cybercoretech.github.io/vexlang/">
+<meta property="og:image" content="https://cybercoretech.github.io/vexlang/assets/og/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VexLang // Small language. Sharp edges.">
+<meta name="twitter:description" content="An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.">
+<meta name="twitter:image" content="https://cybercoretech.github.io/vexlang/assets/og/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -41,6 +56,7 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
     <a href="#language">language</a>
     <a href="#milestones-section">milestones</a>
     <a href="#playground">playground</a>
+    <a href="keywords.html">keywords</a>
     <a href="docs/index.html">docs</a>
     <a href="https://github.com/cybercoretech/vexlang" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
   </nav>
@@ -50,14 +66,65 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
 <section class="shell hero" id="playground"><div><div class="eyebrow">CYBERCORE LANGUAGE LAB</div><h1>Vex<span>Lang</span></h1><h2>Small language. Sharp edges.</h2><p>An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.</p><div class="actions"><a class="button primary" href="https://github.com/cybercoretech/vexlang#quick-start">Run Vex <span>↗</span></a><a class="button" href="https://github.com/cybercoretech/vexlang/blob/main/docs/src/language.md">Read the language reference <span>→</span></a></div><div class="release"><i></i> 0.1.0-alpha.1 · Rust 1.85+ · MIT</div></div>
 <div class="canvas"><div class="tabs"><span class="tab active">main.vex</span><span class="tab">typed IR</span><span class="tab">qbe</span><span class="canvas-meta">VEXLANG 0.1.0-ALPHA.1</span></div><div class="editor"><pre class="code"><span class="line"><span class="ln">1</span><span class="comment">// a tiny Vex program</span></span><span class="line"><span class="ln">2</span><span class="kw">let</span> answer = (<span class="value">10</span> + <span class="value">2</span>) * <span class="value">3</span>;</span><span class="line"><span class="ln">3</span>answer;</span></pre><pre class="ir"><span class="ir-title">TYPED IR / VERIFIED</span><span class="line">let answer: <span class="type">i32</span> = [<span class="type">i32</span>]((<span class="value">10</span> Add <span class="value">2</span>) Mul <span class="value">3</span>);</span><span class="line">[<span class="type">i32</span>]answer;</span><span class="annotation">run → Int(36)</span></pre></div><div class="canvas-foot"><span>VEX <b>›</b> CHECK <b>›</b> LOWER <b>›</b> RUN</span><span>same source. clearer computation.</span></div></div></section>
 <section class="shell status-grid" aria-label="VexLang status"><article class="status online"><h3>01 / RUN</h3><strong>INTERPRETER</strong><p>status: ready</p></article><article class="status verified"><h3>02 / CHECK</h3><strong>TYPED IR</strong><p>status: valid</p></article><article class="status experimental"><h3>03 / LOWER</h3><strong>QBE IL / RUST</strong><p>status: active</p></article></section>
+<section class="shell section" id="vexlab">
+<div class="section-kicker">// vexlab</div>
+<h2>One editor. Every artifact. Live output.</h2>
+<p class="intro">Three real programs, one window. The editor is the front door to the toolchain: same source, checked, lowered, then run.</p>
+<div class="vexlab-window" role="group" aria-label="VexLab editor preview">
+  <div class="vexlab-titlebar">
+    <span class="tl red"></span><span class="tl amber"></span><span class="tl green"></span>
+    <span class="vexlab-file">vex run.vex</span>
+    <span class="vexlab-tag">VEXLANG 0.1.0-ALPHA.1</span>
+  </div>
+  <div class="vexlab-toolbar">
+    <div class="vexlab-tabs" role="tablist" aria-label="Open files">
+      <button class="vexlab-tab is-on" type="button" role="tab" aria-selected="true" data-file="vexrun"><span class="vt-dot"></span>vex run.vex</button>
+      <button class="vexlab-tab" type="button" role="tab" aria-selected="false" data-file="mathvex"><span class="vt-dot"></span>math.vex</button>
+      <button class="vexlab-tab" type="button" role="tab" aria-selected="false" data-file="pointvex"><span class="vt-dot"></span>point.vex</button>
+    </div>
+    <button class="vexlab-run" type="button" id="vexlab-run">RUN</button>
+  </div>
+  <div class="vexlab-screen">
+    <div class="vexlab-code">
+      <pre class="vexlab-source" data-file="vexrun"><code><span class="t-kw">let</span> answer = (<span class="t-num">10</span> + <span class="t-num">2</span>) * <span class="t-num">3</span>;
+<span class="t-kw">answer</span>;</code></pre>
+      <pre class="vexlab-out" data-file="vexrun"><span class="vexlab-out-line ok"><span class="vexlab-out-prompt">$</span> vexlang run vexrun.vex</span><span class="vexlab-out-line"><span class="vexlab-out-prompt">→</span> Int(36)</span></pre>
+    </div>
+  </div>
+  <div class="vexlab-status">
+    <span>● 0 errors</span>
+    <span>● 5 lines</span>
+    <span>● VEXLANG 0.1.0-ALPHA.1</span>
+    <span class="vexlab-status-right">CHECK → LOWER → RUN</span>
+  </div>
+</div>
+</section>
 <section class="shell section" id="examples">
 <div class="section-kicker">// runnable surface</div>
 <h2>Three programs. Real output.</h2>
 <p class="intro">Every snippet below was run against the current interpreter before it was published. Open a card to see the source and what the toolchain emits.</p>
 <div class="examples">
-  <button class="example" type="button" data-dialog="ex-records"><span class="example-index">[01] RECORDS</span><strong>Named fields, checked</strong><p>Construction must supply every field exactly once.</p><span class="example-out">run → Int(5)</span></button>
-  <button class="example" type="button" data-dialog="ex-loop"><span class="example-index">[02] CONTROL FLOW</span><strong>Bounded loops</strong><p>Checked arithmetic, and a hard stop after a million iterations.</p><span class="example-out">run → Int(3)</span></button>
-  <button class="example" type="button" data-dialog="ex-lower"><span class="example-index">[03] LOWERING</span><strong>Overflow becomes a trap</strong><p>The scalar QBE target lowers checked addition to an explicit exit.</p><span class="example-out">qbe → vex-scalar-v1</span></button>
+  <button class="example" type="button" data-dialog="ex-records">
+    <svg class="example-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="2"/><circle cx="8.5" cy="15.5" r="2"/><circle cx="15.5" cy="8.5" r="2"/></svg>
+    <span class="example-index">[01] RECORDS</span>
+    <strong>Named fields, checked</strong>
+    <p>Construction must supply every field exactly once; unknown field access is rejected.</p>
+    <span class="example-out">run → Int(5)</span>
+  </button>
+  <button class="example" type="button" data-dialog="ex-loop">
+    <svg class="example-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8.5 12h7M12 8.5v7"/></svg>
+    <span class="example-index">[02] CONTROL FLOW</span>
+    <strong>Bounded loops</strong>
+    <p>Checked arithmetic, and a hard stop after a million iterations.</p>
+    <span class="example-out">run → Int(3)</span>
+  </button>
+  <button class="example" type="button" data-dialog="ex-lower">
+    <svg class="example-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3v18M7 8l5-5 5 5M7 16l5 5 5-5"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
+    <span class="example-index">[03] LOWERING</span>
+    <strong>Overflow becomes a trap</strong>
+    <p>The scalar QBE target lowers checked addition to an explicit exit.</p>
+    <span class="example-out">qbe → vex-scalar-v1</span>
+  </button>
 </div>
 
 <dialog class="example-dialog" id="ex-records" aria-labelledby="ex-records-title">
@@ -178,6 +245,7 @@ cargo run -- rust program.vex</pre></div></div></section>
   <script src="theme/theme-catalog.js"></script>
   <script src="theme/cybercore.js"></script>
   <script src="scripts/hero-cards.js"></script>
+  <script src="scripts/vexlab.js"></script>
   <script type="module" src="https://cybercoretech.github.io/kit/contact.js"></script>
 </body>
 </html>
