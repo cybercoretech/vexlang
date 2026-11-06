@@ -122,7 +122,7 @@ pub fn sha256_file(path: &Path) -> Result<String> {
 
 fn client() -> Result<reqwest::blocking::Client> {
     Ok(reqwest::blocking::Client::builder()
-        .user_agent(concat!("vex-registry/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("vexlang-registry/", env!("CARGO_PKG_VERSION")))
         .timeout(Duration::from_secs(120))
         .build()?)
 }
@@ -492,7 +492,8 @@ mod tests {
     use super::*;
 
     fn temp_dir(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("vex-registry-{tag}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("vexlang-registry-{tag}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir

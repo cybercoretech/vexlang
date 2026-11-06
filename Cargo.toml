@@ -1,13 +1,29 @@
 [package]
 name = "vexlang"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 description = "Alpha interpreter and typed IR prototype for the Vex language"
 readme = "README.md"
 repository = "https://github.com/cybercoretech/vexlang"
-homepage = "https://github.com/cybercoretech/vexlang"
+homepage = "https://cybercoretech.github.io/vexlang/"
+documentation = "https://cybercoretech.github.io/vexlang/docs/"
+keywords = ["language", "interpreter", "compiler", "vex"]
+categories = ["compilers", "command-line-utilities"]
+# Ship the compiler sources, tests and docs only; the website (site/) and
+# design notes stay in the repository.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/docs/src/**",
+    "/docs/book.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/SECURITY.md",
+    "/CONTRIBUTING.md",
+]
 
 [dependencies]
 pest = "2.7"
@@ -17,7 +33,7 @@ pest_derive = "2.7"
 # wasm32 (browser) build entirely.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 anyhow = "1.0.104"
-vex-registry = { path = "crates/vex-registry", version = "0.1.0" }
+vexlang-registry = { path = "crates/vexlang-registry", version = "0.1.0" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -26,4 +42,4 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = "0.2"
 
 [workspace]
-members = [".", "crates/vex-registry"]
+members = [".", "crates/vexlang-registry"]

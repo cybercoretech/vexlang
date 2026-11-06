@@ -9,7 +9,7 @@ released under the [MIT license](LICENSE).
 
 [![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![CI](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml/badge.svg)](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml)
-[![Release](https://img.shields.io/badge/release-0.1.0--alpha.1-purple)](https://github.com/cybercoretech/vexlang)
+[![Release](https://img.shields.io/badge/release-0.1.0--alpha.2-purple)](https://github.com/cybercoretech/vexlang)
 
 ## 🛰️ Signal status
 
@@ -137,7 +137,7 @@ Vex packages are listed in a **static Git index**, one `index.json` in
 [`cybercoretech/vex-index`](https://github.com/cybercoretech/vex-index), with
 tarballs hosted as release assets. There is no registry server and no login.
 Publishing a version means opening a pull request against the index. The
-client is the [`vex-registry`](crates/vex-registry) workspace crate, and it is
+client is the [`vexlang-registry`](crates/vexlang-registry) workspace crate, and it is
 only built for native targets.
 
 ```sh
@@ -260,7 +260,7 @@ The complete [Vex mdBook documentation](docs/src/intro.md) includes the
 
 ## 📦 Public alpha release checklist
 
-Current release: `0.1.0-alpha.1`.
+Current release: `0.1.0-alpha.2`.
 
 The package version is declared in `Cargo.toml` and exposed by
 `vexlang --version`. Before publishing a tagged alpha, run:

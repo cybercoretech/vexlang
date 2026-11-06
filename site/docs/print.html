@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7e1f61b6.js";
+            window.path_to_searchindex_js = "searchindex-1e1e9c3e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -649,7 +649,7 @@ zero, and <code>103</code> for signed division overflow (<code>i32::MIN / -1</co
 trait is the boundary used by the textual target emitter and experimental QBE
 emitter; Cranelift output is intentionally not implemented.</p>
 <h2 id="public-release-posture"><a class="header" href="#public-release-posture">Public release posture</a></h2>
-<p>Vex is suitable for a labeled <code>0.1.0-alpha.1</code> public release as an interpreter
+<p>Vex is suitable for a labeled <code>0.1.0-alpha.2</code> public release as an interpreter
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 <code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
@@ -785,7 +785,7 @@ binary; <code>build</code> remains a deterministic textual IR command. See the
 <a href="#public-alpha-release-guide">public alpha release guide</a> for the publish checklist.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="public-alpha-release-guide"><a class="header" href="#public-alpha-release-guide">Public alpha release guide</a></h1>
-<p>Vex <code>0.1.0-alpha.1</code> is an interpreter and typed textual-IR prototype with an
+<p>Vex <code>0.1.0-alpha.2</code> is an interpreter and typed textual-IR prototype with an
 experimental scalar QBE IL emitter. A release publishes the Cargo source
 package; it does <strong>not</strong> publish a native binary or claim production compiler
 support.</p>
@@ -799,14 +799,19 @@ changelog entry and README release badge/text.</li>
 naming, documentation references, and package inclusion.</li>
 <li>Run the complete <a href="#development-and-quality">quality gate</a>, including Rust 1.85.0 and
 <code>mdbook test docs</code>.</li>
-<li>Run <code>./scripts/release-artifacts.sh dist</code>.</li>
+<li>Run <code>./scripts/release-artifacts.sh dist</code>. It writes both <code>.crate</code> files
+and their checksums.</li>
 <li>Verify the checksum from the artifact directory with
-<code>cd dist &amp;&amp; sha256sum --check vexlang-&lt;version&gt;.crate.sha256</code>.</li>
+<code>cd dist &amp;&amp; sha256sum --check *.crate.sha256</code>.</li>
 <li>Inspect the archive with <code>tar tf</code> and confirm it contains source and docs,
 not a fabricated native executable.</li>
-<li>Create the matching annotated Git tag and publish the crate artifact and
-checksum from <code>dist/</code>.</li>
-<li>Record the tag, artifact checksum, and validation results in the release
+<li>Dry-run the crates.io upload: <code>cargo publish --workspace --dry-run</code>. This
+packages and builds both <code>vexlang-registry</code> and <code>vexlang</code> from their
+tarballs.</li>
+<li>Create the matching annotated Git tag, run <code>cargo publish --workspace</code>
+(it publishes <code>vexlang-registry</code> first, then <code>vexlang</code>), and attach the
+<code>.crate</code> files and checksums from <code>dist/</code> to the GitHub release.</li>
+<li>Record the tag, artifact checksums, and validation results in the release
 notes.</li>
 </ol>
 <p>The tag workflow repeats the metadata check and package smoke test. Artifact

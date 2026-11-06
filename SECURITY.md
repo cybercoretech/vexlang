@@ -1,7 +1,7 @@
 # Security policy
 
 Vex is an alpha interpreter and is not suitable for processing untrusted
-programs in a privileged environment. The `0.1.0-alpha.1` release line is
+programs in a privileged environment. The `0.1.0-alpha` release line is
 supported on a best-effort basis.
 
 Please report suspected security issues privately to

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.2 (2026-11-05)
+
+Highlights: `use` now loads code, and Vex has a package manager backed by
+the static [vex-index](https://github.com/cybercoretech/vex-index), with
+[vexstd](https://github.com/cybercoretech/vexstd) as its first package.
+Also fixes several parser bugs. First release on crates.io, together
+with the new `vexlang-registry` helper crate.
+
+- Published to crates.io as `vexlang` and `vexlang-registry`. The crate
+  package now ships only sources, tests and docs (`include` list), not the
+  website.
 - Fixed `==` precedence. It bound as loosely as `||`, so `a == 0 || b == 0`
   and `x == 1 && y == 2` failed to type-check. `==` now binds like `<`/`>`,
   tighter than `&&` and `||`.
@@ -34,7 +45,7 @@
   `vexlang package` builds a reproducible `NAME-VERSION.tar.gz` from
   `vex.toml`, `vexlang publish` records the version (URL, SHA-256, size) in an
   index checkout for a pull request, and `vexlang add NAME@VERSION`
-  downloads and verifies a package. Implemented in the new `vex-registry`
+  downloads and verifies a package. Implemented in the new `vexlang-registry`
   workspace crate and excluded from the wasm32 build. Published versions are
   immutable, tarball URLs must be HTTPS, yanked versions are refused, and
   package names and versions are validated against path traversal.
