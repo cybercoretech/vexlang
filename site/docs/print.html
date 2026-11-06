@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-75634797.js";
+            window.path_to_searchindex_js = "searchindex-7e1f61b6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4818d024.js"></script>
+        <script src="toc-9aac5dea.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -251,8 +251,9 @@ variant and wildcard patterns. The built-ins <code>ok(value)</code> and <code>er
 create structured results; <code>match</code> checks <code>Ok</code>/<code>Err</code> exhaustiveness and <code>?</code>
 propagates an error result from a function.
 Arrays and indexing are supported as described below. String-keyed maps are
-also available through the limited <code>map</code> and <code>map_get</code> built-ins. Modules,
-imports, generics, and project execution remain deferred.</p>
+also available through the limited <code>map</code> and <code>map_get</code> built-ins. <code>use</code>
+imports modules and packages (see <a href="#modules-and-packages">Modules and packages</a>).
+Generics and project execution remain deferred.</p>
 <h2 id="arrays-and-indexing"><a class="header" href="#arrays-and-indexing">Arrays and indexing</a></h2>
 <p>Array literals use square brackets and may be empty, nested, or assigned an
 element type:</p>
@@ -294,10 +295,15 @@ evaluation.</p>
 <pre><code class="language-toml">[project]
 name = "sample"
 version = "0.1.0"
-source = "src/main.vex"
+source = "src/main.vex"   # program entry
+lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
+description = "One line"
+
+[dependencies]
+greeter = "0.1.0"         # exact versions
 </code></pre>
-<p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Module/import
-resolution and dependency management are reserved for a later phase.</p>
+<p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Dependencies are
+installed with <code>vexlang install</code>; see <a href="#modules-and-packages">Modules and packages</a>.</p>
 <h2 id="maps-scoped-collection"><a class="header" href="#maps-scoped-collection">Maps (scoped collection)</a></h2>
 <p>Maps are available as a deliberately small, non-generic collection:
 <code>map("key", value, ...)</code> creates a string-keyed map and <code>map_get(map, "key")</code>
@@ -347,14 +353,16 @@ let mut count = 0;
     }
 }
 </code></pre>
-<h3 id="mod---modules--namespaces"><a class="header" href="#mod---modules--namespaces"><code>mod</code> - Modules &amp; Namespaces</a></h3>
-<p>Organize code into hierarchical submodules and namespaces.</p>
-<pre><code class="language-vex">mod math {
+<h3 id="module---modules"><a class="header" href="#module---modules"><code>module</code> - Modules</a></h3>
+<p>Group declarations into a module. A <code>use</code> of the module makes them available.</p>
+<pre><code class="language-vex">module math {
     fn square(x: i32) -&gt; i32 { x * x }
 }
 </code></pre>
 <h3 id="use--export---imports--visibility"><a class="header" href="#use--export---imports--visibility"><code>use</code> &amp; <code>export</code> - Imports &amp; Visibility</a></h3>
-<p>Import paths and export symbols across module boundaries.</p>
+<p><code>use</code> loads an inline module, a sibling <code>NAME.vex</code> file or an installed package.
+<code>export</code> limits which items <code>use mod::item</code> may name. See
+<a href="#modules-and-packages">Modules and packages</a>.</p>
 <pre><code class="language-vex">use math::square;
 export square;
 </code></pre>
@@ -378,6 +386,93 @@ export square;
 <li><strong><code>?</code></strong>: Result error propagation operator (<code>let val = operation()?;</code>).</li>
 <li><strong><code>ok</code> / <code>err</code></strong>: Structured result constructors (<code>ok(42)</code>, <code>err("failed")</code>).</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="modules-and-packages"><a class="header" href="#modules-and-packages">Modules and packages</a></h1>
+<h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
+<p><code>use</code> makes another module’s declarations available:</p>
+<pre><code class="language-vex">use math;           // everything in module `math`
+use math::*;        // the same
+use math::square;   // checks that `square` exists (and is exported)
+</code></pre>
+<p>A module named <code>math</code> is found in this order:</p>
+<ol>
+<li>an inline <code>module math { ... }</code> block in the same file,</li>
+<li>a file <code>math.vex</code> next to the importing file,</li>
+<li>an installed package, <code>vex_modules/math/</code>, using its <code>vex.toml</code> <code>lib</code> entry
+(default <code>src/lib.vex</code>). The project root is the nearest directory above
+the source file that contains a <code>vex.toml</code>.</li>
+</ol>
+<p>The rules in this first version are deliberately simple:</p>
+<ul>
+<li><strong>One namespace.</strong> Imported declarations keep their names. If two modules,
+or a module and your program, declare the same name, that’s an error that
+names both.</li>
+<li><strong>Declarations only.</strong> A module may contain <code>fn</code>, <code>record</code>, <code>enum</code>, <code>trait</code>,
+<code>impl</code>, <code>newtype</code>, <code>contract</code>, <code>use</code>, <code>export</code>, <code>module</code>, <code>test</code> and <code>bench</code>.
+Top-level statements are rejected, so importing never runs code. <code>test</code> and
+<code>bench</code> items are not imported.</li>
+<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, <code>use mod::item</code>
+may only name exported items. A module without exports is fully public.</li>
+<li>Each module loads once. Import cycles are reported as errors.</li>
+<li>Imported code works in every command: <code>run</code>, <code>check</code>, <code>test</code>, <code>build</code>/<code>ir</code>,
+<code>target</code>/<code>qbe</code> (within the scalar subset) and <code>rust</code>.</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>E1101</code></td><td>module or item not found, or an unsupported nested path</td></tr>
+<tr><td><code>E1102</code></td><td>the module failed to parse or check, or has top-level statements</td></tr>
+<tr><td><code>E1103</code></td><td>import cycle</td></tr>
+<tr><td><code>E1104</code></td><td>the same name is declared in two places</td></tr>
+<tr><td><code>E1105</code></td><td>item not exported, or an export of an undeclared name</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="packages"><a class="header" href="#packages">Packages</a></h2>
+<p>Packages are listed in a static Git index,
+<a href="https://github.com/cybercoretech/vex-index">cybercoretech/vex-index</a>. It’s a
+single <code>index.json</code> that records the tarball URL, SHA-256 and size of every
+version. There is no registry server and no login.</p>
+<h3 id="using-packages"><a class="header" href="#using-packages">Using packages</a></h3>
+<pre><code class="language-sh">vexlang new app &amp;&amp; cd app
+vexlang add greeter            # latest non-yanked version, or greeter@0.1.0
+vexlang install                # after cloning: install what vex.toml lists
+vexlang install --locked       # CI: fail if vex.lock would change
+vexlang install --offline      # use only vex.lock and the download cache
+vexlang remove greeter
+vexlang search greet
+vexlang info greeter
+</code></pre>
+<p><code>vex.toml</code> lists exact versions:</p>
+<pre><code class="language-toml">[project]
+name = "app"
+version = "0.1.0"
+
+[dependencies]
+greeter = "0.1.0"
+</code></pre>
+<p><code>install</code> resolves dependencies transitively, using the dependencies each
+package declares in its own <code>vex.toml</code>. Two different versions of one package
+anywhere in the tree are a conflict. Every tarball is checked against its
+size and SHA-256 before anything is unpacked into <code>vex_modules/NAME/</code>.
+Archives with paths outside the package, links or special files are refused.
+<code>vex.lock</code> pins the URL and hash of every package. Commit <code>vex.lock</code>, and add
+<code>vex_modules/</code> to <code>.gitignore</code> (<code>vexlang new</code> does both for you).</p>
+<h3 id="publishing-a-library"><a class="header" href="#publishing-a-library">Publishing a library</a></h3>
+<pre><code class="language-sh">vexlang new greeter --lib      # src/lib.vex with an exported function
+vexlang package                # dist/greeter-0.1.0.tar.gz (reproducible)
+gh release create v0.1.0 dist/greeter-0.1.0.tar.gz
+vexlang publish --index ../vex-index \
+  --url https://github.com/OWNER/greeter/releases/download/v0.1.0/greeter-0.1.0.tar.gz
+# commit index.json in vex-index and open a pull request
+</code></pre>
+<p>Published versions are immutable. To withdraw one, run
+<code>vexlang yank NAME@VERSION --index ../vex-index</code> and open a pull request.
+Yanked versions stay installable from an existing <code>vex.lock</code>, but <code>add</code> won’t
+pick them.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="command-line-reference"><a class="header" href="#command-line-reference">Command-line reference</a></h1>
 <p>The executable is available as <code>vexlang</code>; during development, use
@@ -403,9 +498,21 @@ diagnostics to a single machine-readable JSON object on standard error.</p>
 <tr><td><code>target FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit textual target IR</td><td><code>0</code></td></tr>
 <tr><td><code>qbe FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit experimental QBE IL</td><td><code>0</code></td></tr>
 <tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code</td><td><code>0</code></td></tr>
+<tr><td><code>new NAME [--lib]</code></td><td>Create a program or library project skeleton</td><td><code>0</code></td></tr>
+<tr><td><code>add NAME[@VER]</code></td><td>Add a dependency to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
+<tr><td><code>remove NAME</code></td><td>Remove a dependency and uninstall it</td><td><code>0</code></td></tr>
+<tr><td><code>install [--locked] [--offline]</code></td><td>Install <code>vex.toml</code> dependencies into <code>vex_modules/</code>, keeping <code>vex.lock</code></td><td><code>0</code></td></tr>
+<tr><td><code>search [TERM]</code>, <code>info NAME</code></td><td>Browse the package index</td><td><code>0</code></td></tr>
+<tr><td><code>fetch NAME@VER [--out DIR]</code></td><td>Download and verify one package tarball</td><td><code>0</code></td></tr>
+<tr><td><code>package [vex.toml]</code></td><td>Build a reproducible <code>dist/NAME-VERSION.tar.gz</code></td><td><code>0</code></td></tr>
+<tr><td><code>publish --index DIR --url URL</code></td><td>Record a version in a checkout of the package index</td><td><code>0</code></td></tr>
+<tr><td><code>yank NAME@VER --index DIR</code></td><td>Withdraw a published version (one-way)</td><td><code>0</code></td></tr>
 </tbody>
 </table>
 </div>
+<p>Package commands accept <code>--index URL|PATH</code> (default <code>$VEX_INDEX</code>, then the
+cybercoretech/vex-index repository) and, where they edit a project,
+<code>--manifest PATH</code> (default <code>./vex.toml</code>). See <a href="#modules-and-packages">Modules and packages</a>.</p>
 <p><code>vexlang FILE</code> remains a backwards-compatible alias for <code>vexlang run FILE</code>.
 Examples:</p>
 <pre><code class="language-sh">cargo run -- check examples/hello.vex
@@ -509,8 +616,9 @@ propagation in the interpreter;</li>
 </ul>
 <h2 id="deferred-or-intentionally-unsupported"><a class="header" href="#deferred-or-intentionally-unsupported">Deferred or intentionally unsupported</a></h2>
 <p>Floating point values, resources (<code>res</code>), map mutation/iteration, generics,
-filesystem access, modules/imports, project execution, and lockfile semantics
-are deferred. Project metadata can be read from a small <code>vex.toml</code>. Record
+filesystem access, nested module namespaces, version ranges and project execution
+are deferred. <code>use</code> imports modules and packages into one shared namespace, and
+<code>vex.toml</code> dependencies are installed with a <code>vex.lock</code> lockfile. Record
 types are the first supported user-defined type. Milestone 9’s lightweight
 compatibility, diagnostic,
 generated-input, and opt-in performance smoke tests are now present; a
@@ -545,7 +653,7 @@ emitter; Cranelift output is intentionally not implemented.</p>
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 <code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
-generics, modules, and project configuration remain post-alpha work.</p>
+generics, module namespaces and version ranges remain post-alpha work.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="experimental-qbe-backend"><a class="header" href="#experimental-qbe-backend">Experimental QBE backend</a></h1>
 <p>The <code>qbe</code> command emits QBE IL for the verified <code>vex-scalar-v1</code> target subset.

@@ -35,8 +35,8 @@ validation. Experimental QBE IL exists for the first scalar subset; packaged
 native executable generation remains out of scope until validation and runtime
 ABI coverage are broader.
 
-Phase 17 is currently a documented boundary: local module/import resolution
-and project entrypoint behavior are not yet implemented.
+Phase 17: local module/import resolution is implemented (flat namespace);
+project entrypoint execution (`vexlang run` on a project) is not.
 
 The type-system phase explicitly defers aliases, tuples, generic foundations,
 and broad conversion changes until they can use one shared representation.
@@ -71,10 +71,12 @@ artifacts are introduced.
 
 ## 🔭 Milestone 14 — Ecosystem and tooling
 
-- Add package/project management. **Started:** `vexlang package`, `publish`
-  and `add` against the static `cybercoretech/vex-index` Git index
-  (`crates/vex-registry`). Dependency resolution from `vex.toml`, lockfiles and
-  unpacking downloaded tarballs remain to do.
+- Add package/project management. **Core complete:** `use` resolution
+  (inline modules, files, packages), `[dependencies]` with transitive
+  resolution, `vex.lock`, verified and safe installs, and `new`/`add`/`remove`/
+  `install`/`search`/`info`/`package`/`publish`/`yank` against
+  `cybercoretech/vex-index`. Remaining: module namespaces (`mod::item`
+  calls), version ranges, and a first published package.
 - Add editor/LSP integration.
 - Add formatter guarantees and language-server diagnostics.
 - Publish stable standard-library and compatibility policies.

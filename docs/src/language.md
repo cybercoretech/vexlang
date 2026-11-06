@@ -74,8 +74,9 @@ variant and wildcard patterns. The built-ins `ok(value)` and `err(value)`
 create structured results; `match` checks `Ok`/`Err` exhaustiveness and `?`
 propagates an error result from a function.
 Arrays and indexing are supported as described below. String-keyed maps are
-also available through the limited `map` and `map_get` built-ins. Modules,
-imports, generics, and project execution remain deferred.
+also available through the limited `map` and `map_get` built-ins. `use`
+imports modules and packages (see [Modules and packages](packages.md)).
+Generics and project execution remain deferred.
 
 ## Arrays and indexing
 
@@ -137,11 +138,16 @@ Project roots may contain a small `vex.toml` foundation:
 [project]
 name = "sample"
 version = "0.1.0"
-source = "src/main.vex"
+source = "src/main.vex"   # program entry
+lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
+description = "One line"
+
+[dependencies]
+greeter = "0.1.0"         # exact versions
 ```
 
-Use `vexlang project vex.toml` to validate and summarize it. Module/import
-resolution and dependency management are reserved for a later phase.
+Use `vexlang project vex.toml` to validate and summarize it. Dependencies are
+installed with `vexlang install`; see [Modules and packages](packages.md).
 
 ## Maps (scoped collection)
 

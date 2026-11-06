@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-75634797.js";
+            window.path_to_searchindex_js = "searchindex-7e1f61b6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4818d024.js"></script>
+        <script src="toc-9aac5dea.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -236,8 +236,9 @@ variant and wildcard patterns. The built-ins <code>ok(value)</code> and <code>er
 create structured results; <code>match</code> checks <code>Ok</code>/<code>Err</code> exhaustiveness and <code>?</code>
 propagates an error result from a function.
 Arrays and indexing are supported as described below. String-keyed maps are
-also available through the limited <code>map</code> and <code>map_get</code> built-ins. Modules,
-imports, generics, and project execution remain deferred.</p>
+also available through the limited <code>map</code> and <code>map_get</code> built-ins. <code>use</code>
+imports modules and packages (see <a href="packages.html">Modules and packages</a>).
+Generics and project execution remain deferred.</p>
 <h2 id="arrays-and-indexing"><a class="header" href="#arrays-and-indexing">Arrays and indexing</a></h2>
 <p>Array literals use square brackets and may be empty, nested, or assigned an
 element type:</p>
@@ -279,10 +280,15 @@ evaluation.</p>
 <pre><code class="language-toml">[project]
 name = "sample"
 version = "0.1.0"
-source = "src/main.vex"
+source = "src/main.vex"   # program entry
+lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
+description = "One line"
+
+[dependencies]
+greeter = "0.1.0"         # exact versions
 </code></pre>
-<p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Module/import
-resolution and dependency management are reserved for a later phase.</p>
+<p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Dependencies are
+installed with <code>vexlang install</code>; see <a href="packages.html">Modules and packages</a>.</p>
 <h2 id="maps-scoped-collection"><a class="header" href="#maps-scoped-collection">Maps (scoped collection)</a></h2>
 <p>Maps are available as a deliberately small, non-generic collection:
 <code>map("key", value, ...)</code> creates a string-keyed map and <code>map_get(map, "key")</code>

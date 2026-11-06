@@ -56,16 +56,18 @@ impl Point {
 }
 ```
 
-### `mod` - Modules & Namespaces
-Organize code into hierarchical submodules and namespaces.
+### `module` - Modules
+Group declarations into a module. A `use` of the module makes them available.
 ```vex
-mod math {
+module math {
     fn square(x: i32) -> i32 { x * x }
 }
 ```
 
 ### `use` & `export` - Imports & Visibility
-Import paths and export symbols across module boundaries.
+`use` loads an inline module, a sibling `NAME.vex` file or an installed package.
+`export` limits which items `use mod::item` may name. See
+[Modules and packages](packages.md).
 ```vex
 use math::square;
 export square;
