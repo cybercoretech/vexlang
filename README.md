@@ -116,35 +116,38 @@ a command to emit one machine-readable diagnostic object on stderr. Exit status
 `0` means success, `1` means a source or test failure, `2` means a CLI or I/O
 error, and `3` means an explicitly unsupported target/backend operation.
 
-### 📦 Package registry client
+### 📦 Packages
 
-`vexlang login`, `publish` and `add` talk to a Vex package registry over HTTP.
-The client lives in the [`vex-registry`](crates/vex-registry) workspace crate
-and is only built for native targets (never for the wasm32 browser build).
+Vex packages are listed in a **static Git index**: one `index.json` in the
+[`cybercoretech/vex-index`](https://github.com/cybercoretech/vex-index)
+repository, with tarballs hosted as release assets. There is no registry
+server, no login and no upload API. Publishing a version means opening a pull
+request against the index. The client is the
+[`vex-registry`](crates/vex-registry) workspace crate, and it is only built for
+native targets (never for the wasm32 browser build).
 
 ```sh
-# API key (CI): from a flag, stdin, or the environment
-printf '%s\n' "$KEY" | vexlang login --key-stdin --registry https://registry.example
-VEX_REGISTRY_TOKEN=... vexlang login
-
-# Email + password: the password never goes on the command line
-vexlang login --email you@example.com --password-stdin < password.txt
-VEX_REGISTRY_PASSWORD=... vexlang login --email you@example.com
-
-vexlang publish --name mypkg --version 0.1.0 --file mypkg-0.1.0.tar.gz [--description TEXT]
-vexlang add --name mypkg --version 0.1.0 [--out vendor] [--registry URL]
+vexlang package                        # vex.toml -> dist/NAME-VERSION.tar.gz (reproducible)
+vexlang publish --index ../vex-index \
+  --url https://github.com/OWNER/REPO/releases/download/vX/NAME-VERSION.tar.gz
+                                       # records url + sha256 + size in index.json
+vexlang add NAME@VERSION [--out vendor] [--index URL|PATH]
+                                       # download + verify size and SHA-256
 ```
 
-- 🌐 **Registry URL:** `--registry`, then `$VEX_REGISTRY`, then
-  `http://localhost:3001`. `publish` uses the registry you logged in to.
-- 🔐 **Credentials:** saved to `~/.config/vex/credentials.toml` with mode
-  `0600` (override the path with `$VEX_CREDENTIALS`). `--password` is refused
-  on purpose because it leaks into shell history.
-- 🧾 **Integrity:** `publish` compares the registry's SHA-256 with the local
-  tarball. `add` writes `NAME-VERSION.tar.gz` atomically and only sends your
-  token to the registry it belongs to.
+- 🧾 **Integrity:** every version stores its SHA-256 and size. `add` writes
+  nothing unless both match, and writes the file atomically.
+- 🧊 **Immutability:** `publish` refuses to overwrite an existing
+  `NAME@VERSION`. Broken releases get `"yanked": true`, which `add` refuses.
+- 🔒 **HTTPS only:** published tarball URLs must be `https://`.
 - 🛑 **Names and versions** may contain only letters, digits, `.`, `_`, `-`
   and `+`, so a package cannot write outside `--out`.
+- 🌐 **Index location:** `--index`, then `$VEX_INDEX`, then the default
+  index URL. A local checkout directory or `index.json` path works too.
+- ♻️ **Reproducible tarballs:** `package` includes `vex.toml`, top-level
+  `README*`/`LICENSE*` and every `.vex` file, skipping hidden directories,
+  `target/` and `dist/`. Entries are sorted and have fixed timestamps and
+  owners.
 
 ### ⚠️ Usage warnings
 
