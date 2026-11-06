@@ -1,103 +1,196 @@
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
-KW_LET = _{ "let" }
-KW_IF = _{ "if" }
-KW_ELSE = _{ "else" }
-KW_WHILE = _{ "while" }
-KW_BREAK = _{ "break" }
-KW_CONTINUE = _{ "continue" }
-KW_FN = _{ "fn" }
-KW_RETURN = _{ "return" }
-KW_RECORD = _{ "record" }
-KW_ENUM = _{ "enum" }
+// Word boundary: a keyword only matches as a whole word, so identifiers
+// such as `letter`, `user` or `tests` are not split into keyword + rest.
+IDENT_CHAR = _{ ASCII_ALPHANUMERIC | "_" }
+KW_MATCH = _{ &W_MATCH ~ "match" }
+W_MATCH = @{ "match" ~ !IDENT_CHAR }
+KW_FOR = _{ &W_FOR ~ "for" }
+W_FOR = @{ "for" ~ !IDENT_CHAR }
+TY_I32 = _{ &W_I32 ~ "i32" }
+W_I32 = @{ "i32" ~ !IDENT_CHAR }
+TY_U64 = _{ &W_U64 ~ "u64" }
+W_U64 = @{ "u64" ~ !IDENT_CHAR }
+TY_F64 = _{ &W_F64 ~ "f64" }
+W_F64 = @{ "f64" ~ !IDENT_CHAR }
+TY_BOOL = _{ &W_BOOL ~ "bool" }
+W_BOOL = @{ "bool" ~ !IDENT_CHAR }
+TY_STRING = _{ &W_STRING ~ "string" }
+W_STRING = @{ "string" ~ !IDENT_CHAR }
+TY_RES = _{ &W_RES ~ "res" }
+W_RES = @{ "res" ~ !IDENT_CHAR }
+
+KW_LET = _{ &W_LET ~ "let" }
+W_LET = @{ "let" ~ !IDENT_CHAR }
+KW_IF = _{ &W_IF ~ "if" }
+W_IF = @{ "if" ~ !IDENT_CHAR }
+KW_ELSE = _{ &W_ELSE ~ "else" }
+W_ELSE = @{ "else" ~ !IDENT_CHAR }
+KW_WHILE = _{ &W_WHILE ~ "while" }
+W_WHILE = @{ "while" ~ !IDENT_CHAR }
+KW_BREAK = _{ &W_BREAK ~ "break" }
+W_BREAK = @{ "break" ~ !IDENT_CHAR }
+KW_CONTINUE = _{ &W_CONTINUE ~ "continue" }
+W_CONTINUE = @{ "continue" ~ !IDENT_CHAR }
+KW_FN = _{ &W_FN ~ "fn" }
+W_FN = @{ "fn" ~ !IDENT_CHAR }
+KW_RETURN = _{ &W_RETURN ~ "return" }
+W_RETURN = @{ "return" ~ !IDENT_CHAR }
+KW_RECORD = _{ &W_RECORD ~ "record" }
+W_RECORD = @{ "record" ~ !IDENT_CHAR }
+KW_ENUM = _{ &W_ENUM ~ "enum" }
+W_ENUM = @{ "enum" ~ !IDENT_CHAR }
 
 // Memory & Resource Management
-KW_ARENA = _{ "arena" }
-KW_OWN = _{ "own" }
-KW_LEASE = _{ "lease" }
-KW_PIN = _{ "pin" }
-KW_STATIC = _{ "static" }
-KW_POOL = _{ "pool" }
-KW_REGION = _{ "region" }
-KW_GUARD = _{ "guard" }
+KW_ARENA = _{ &W_ARENA ~ "arena" }
+W_ARENA = @{ "arena" ~ !IDENT_CHAR }
+KW_OWN = _{ &W_OWN ~ "own" }
+W_OWN = @{ "own" ~ !IDENT_CHAR }
+KW_LEASE = _{ &W_LEASE ~ "lease" }
+W_LEASE = @{ "lease" ~ !IDENT_CHAR }
+KW_PIN = _{ &W_PIN ~ "pin" }
+W_PIN = @{ "pin" ~ !IDENT_CHAR }
+KW_STATIC = _{ &W_STATIC ~ "static" }
+W_STATIC = @{ "static" ~ !IDENT_CHAR }
+KW_POOL = _{ &W_POOL ~ "pool" }
+W_POOL = @{ "pool" ~ !IDENT_CHAR }
+KW_REGION = _{ &W_REGION ~ "region" }
+W_REGION = @{ "region" ~ !IDENT_CHAR }
+KW_GUARD = _{ &W_GUARD ~ "guard" }
+W_GUARD = @{ "guard" ~ !IDENT_CHAR }
 
 // Concurrency & Parallelism
-KW_ASYNC = _{ "async" }
-KW_AWAIT = _{ "await" }
-KW_SPAWN = _{ "spawn" }
-KW_CHANNEL = _{ "channel" }
-KW_LOCK = _{ "lock" }
-KW_ATOMIC = _{ "atomic" }
-KW_SELECT = _{ "select" }
+KW_ASYNC = _{ &W_ASYNC ~ "async" }
+W_ASYNC = @{ "async" ~ !IDENT_CHAR }
+KW_AWAIT = _{ &W_AWAIT ~ "await" }
+W_AWAIT = @{ "await" ~ !IDENT_CHAR }
+KW_SPAWN = _{ &W_SPAWN ~ "spawn" }
+W_SPAWN = @{ "spawn" ~ !IDENT_CHAR }
+KW_CHANNEL = _{ &W_CHANNEL ~ "channel" }
+W_CHANNEL = @{ "channel" ~ !IDENT_CHAR }
+KW_LOCK = _{ &W_LOCK ~ "lock" }
+W_LOCK = @{ "lock" ~ !IDENT_CHAR }
+KW_ATOMIC = _{ &W_ATOMIC ~ "atomic" }
+W_ATOMIC = @{ "atomic" ~ !IDENT_CHAR }
+KW_SELECT = _{ &W_SELECT ~ "select" }
+W_SELECT = @{ "select" ~ !IDENT_CHAR }
 
 // Error Handling
-KW_ENSURE = _{ "ensure" }
-KW_RECOVER = _{ "recover" }
-KW_FALLBACK = _{ "fallback" }
-KW_TRY = _{ "try" }
-KW_THROW = _{ "throw" }
-KW_SUPPRESS = _{ "suppress" }
+KW_ENSURE = _{ &W_ENSURE ~ "ensure" }
+W_ENSURE = @{ "ensure" ~ !IDENT_CHAR }
+KW_RECOVER = _{ &W_RECOVER ~ "recover" }
+W_RECOVER = @{ "recover" ~ !IDENT_CHAR }
+KW_FALLBACK = _{ &W_FALLBACK ~ "fallback" }
+W_FALLBACK = @{ "fallback" ~ !IDENT_CHAR }
+KW_TRY = _{ &W_TRY ~ "try" }
+W_TRY = @{ "try" ~ !IDENT_CHAR }
+KW_THROW = _{ &W_THROW ~ "throw" }
+W_THROW = @{ "throw" ~ !IDENT_CHAR }
+KW_SUPPRESS = _{ &W_SUPPRESS ~ "suppress" }
+W_SUPPRESS = @{ "suppress" ~ !IDENT_CHAR }
 
 // Type System
-KW_TRAIT = _{ "trait" }
-KW_IMPL = _{ "impl" }
-KW_WHERE = _{ "where" }
-KW_OPAQUE = _{ "opaque" }
-KW_NEWTYPE = _{ "newtype" }
-KW_UNION = _{ "union" }
-KW_PHANTOM = _{ "phantom" }
+KW_TRAIT = _{ &W_TRAIT ~ "trait" }
+W_TRAIT = @{ "trait" ~ !IDENT_CHAR }
+KW_IMPL = _{ &W_IMPL ~ "impl" }
+W_IMPL = @{ "impl" ~ !IDENT_CHAR }
+KW_WHERE = _{ &W_WHERE ~ "where" }
+W_WHERE = @{ "where" ~ !IDENT_CHAR }
+KW_OPAQUE = _{ &W_OPAQUE ~ "opaque" }
+W_OPAQUE = @{ "opaque" ~ !IDENT_CHAR }
+KW_NEWTYPE = _{ &W_NEWTYPE ~ "newtype" }
+W_NEWTYPE = @{ "newtype" ~ !IDENT_CHAR }
+KW_UNION = _{ &W_UNION ~ "union" }
+W_UNION = @{ "union" ~ !IDENT_CHAR }
+KW_PHANTOM = _{ &W_PHANTOM ~ "phantom" }
+W_PHANTOM = @{ "phantom" ~ !IDENT_CHAR }
 
 // Metaprogramming
-KW_MACRO = _{ "macro" }
-KW_DERIVE = _{ "derive" }
-KW_INLINE = _{ "inline" }
-KW_CONSTEXPR = _{ "constexpr" }
-KW_GENERIC = _{ "generic" }
-KW_SPECIALIZE = _{ "specialize" }
+KW_MACRO = _{ &W_MACRO ~ "macro" }
+W_MACRO = @{ "macro" ~ !IDENT_CHAR }
+KW_DERIVE = _{ &W_DERIVE ~ "derive" }
+W_DERIVE = @{ "derive" ~ !IDENT_CHAR }
+KW_INLINE = _{ &W_INLINE ~ "inline" }
+W_INLINE = @{ "inline" ~ !IDENT_CHAR }
+KW_CONSTEXPR = _{ &W_CONSTEXPR ~ "constexpr" }
+W_CONSTEXPR = @{ "constexpr" ~ !IDENT_CHAR }
+KW_GENERIC = _{ &W_GENERIC ~ "generic" }
+W_GENERIC = @{ "generic" ~ !IDENT_CHAR }
+KW_SPECIALIZE = _{ &W_SPECIALIZE ~ "specialize" }
+W_SPECIALIZE = @{ "specialize" ~ !IDENT_CHAR }
 
 // Modules & Packages
-KW_MODULE = _{ "module" }
-KW_USE = _{ "use" }
-KW_EXPORT = _{ "export" }
-KW_PACKAGE = _{ "package" }
-KW_EXTERNAL = _{ "external" }
+KW_MODULE = _{ &W_MODULE ~ "module" }
+W_MODULE = @{ "module" ~ !IDENT_CHAR }
+KW_USE = _{ &W_USE ~ "use" }
+W_USE = @{ "use" ~ !IDENT_CHAR }
+KW_EXPORT = _{ &W_EXPORT ~ "export" }
+W_EXPORT = @{ "export" ~ !IDENT_CHAR }
+KW_PACKAGE = _{ &W_PACKAGE ~ "package" }
+W_PACKAGE = @{ "package" ~ !IDENT_CHAR }
+KW_EXTERNAL = _{ &W_EXTERNAL ~ "external" }
+W_EXTERNAL = @{ "external" ~ !IDENT_CHAR }
 
 // Testing & Docs
-KW_TEST = _{ "test" }
-KW_BENCH = _{ "bench" }
-KW_DOC = _{ "doc" }
-KW_EXAMPLE = _{ "example" }
+KW_TEST = _{ &W_TEST ~ "test" }
+W_TEST = @{ "test" ~ !IDENT_CHAR }
+KW_BENCH = _{ &W_BENCH ~ "bench" }
+W_BENCH = @{ "bench" ~ !IDENT_CHAR }
+KW_DOC = _{ &W_DOC ~ "doc" }
+W_DOC = @{ "doc" ~ !IDENT_CHAR }
+KW_EXAMPLE = _{ &W_EXAMPLE ~ "example" }
+W_EXAMPLE = @{ "example" ~ !IDENT_CHAR }
 
 // Safety & Security
-KW_UNSAFE = _{ "unsafe" }
-KW_TRUSTED = _{ "trusted" }
-KW_VERIFY = _{ "verify" }
-KW_SANDBOX = _{ "sandbox" }
-KW_AUDIT = _{ "audit" }
+KW_UNSAFE = _{ &W_UNSAFE ~ "unsafe" }
+W_UNSAFE = @{ "unsafe" ~ !IDENT_CHAR }
+KW_TRUSTED = _{ &W_TRUSTED ~ "trusted" }
+W_TRUSTED = @{ "trusted" ~ !IDENT_CHAR }
+KW_VERIFY = _{ &W_VERIFY ~ "verify" }
+W_VERIFY = @{ "verify" ~ !IDENT_CHAR }
+KW_SANDBOX = _{ &W_SANDBOX ~ "sandbox" }
+W_SANDBOX = @{ "sandbox" ~ !IDENT_CHAR }
+KW_AUDIT = _{ &W_AUDIT ~ "audit" }
+W_AUDIT = @{ "audit" ~ !IDENT_CHAR }
 
 // Performance
-KW_COLD = _{ "cold" }
-KW_HOT = _{ "hot" }
-KW_VECTORIZE = _{ "vectorize" }
-KW_PARALLEL = _{ "parallel" }
-KW_NOINLINE = _{ "noinline" }
+KW_COLD = _{ &W_COLD ~ "cold" }
+W_COLD = @{ "cold" ~ !IDENT_CHAR }
+KW_HOT = _{ &W_HOT ~ "hot" }
+W_HOT = @{ "hot" ~ !IDENT_CHAR }
+KW_VECTORIZE = _{ &W_VECTORIZE ~ "vectorize" }
+W_VECTORIZE = @{ "vectorize" ~ !IDENT_CHAR }
+KW_PARALLEL = _{ &W_PARALLEL ~ "parallel" }
+W_PARALLEL = @{ "parallel" ~ !IDENT_CHAR }
+KW_NOINLINE = _{ &W_NOINLINE ~ "noinline" }
+W_NOINLINE = @{ "noinline" ~ !IDENT_CHAR }
 
 // Interoperability & FFI
-KW_EXTERN = _{ "extern" }
-KW_ABI = _{ "abi" }
-KW_PACKED = _{ "packed" }
+KW_EXTERN = _{ &W_EXTERN ~ "extern" }
+W_EXTERN = @{ "extern" ~ !IDENT_CHAR }
+KW_ABI = _{ &W_ABI ~ "abi" }
+W_ABI = @{ "abi" ~ !IDENT_CHAR }
+KW_PACKED = _{ &W_PACKED ~ "packed" }
+W_PACKED = @{ "packed" ~ !IDENT_CHAR }
 
 // Reflection
-KW_REFLECT = _{ "reflect" }
-KW_TYPEOF = _{ "typeof" }
+KW_REFLECT = _{ &W_REFLECT ~ "reflect" }
+W_REFLECT = @{ "reflect" ~ !IDENT_CHAR }
+KW_TYPEOF = _{ &W_TYPEOF ~ "typeof" }
+W_TYPEOF = @{ "typeof" ~ !IDENT_CHAR }
 
 // Contracts & Verification
-KW_CONTRACT = _{ "contract" }
-KW_INVARIANT = _{ "invariant" }
-KW_ASSERT = _{ "assert" }
-KW_ASSUME = _{ "assume" }
-KW_PROVE = _{ "prove" }
+KW_CONTRACT = _{ &W_CONTRACT ~ "contract" }
+W_CONTRACT = @{ "contract" ~ !IDENT_CHAR }
+KW_INVARIANT = _{ &W_INVARIANT ~ "invariant" }
+W_INVARIANT = @{ "invariant" ~ !IDENT_CHAR }
+KW_ASSERT = _{ &W_ASSERT ~ "assert" }
+W_ASSERT = @{ "assert" ~ !IDENT_CHAR }
+KW_ASSUME = _{ &W_ASSUME ~ "assume" }
+W_ASSUME = @{ "assume" ~ !IDENT_CHAR }
+KW_PROVE = _{ &W_PROVE ~ "prove" }
+W_PROVE = @{ "prove" ~ !IDENT_CHAR }
 
 ident = @{ !(
     KW_LET | KW_IF | KW_ELSE | KW_WHILE | KW_BREAK | KW_CONTINUE | KW_FN | KW_RETURN | KW_RECORD | KW_ENUM
@@ -117,35 +210,35 @@ ident = @{ !(
 
 int = @{ ASCII_DIGIT+ }
 string = @{ "\"" ~ ( "\\\"" | "\\\\" | !"\"" ~ ANY )* ~ "\"" }
-type_name = { array_type | "i32" | "u64" | "f64" | "bool" | "string" | "res" | ident }
+type_name = { array_type | TY_I32 | TY_U64 | TY_F64 | TY_BOOL | TY_STRING | TY_RES | ident }
 array_type = { "[" ~ type_name ~ "]" }
 field_decl = { ident ~ ":" ~ type_name }
-record_decl = { "record" ~ ident ~ "{" ~ (field_decl ~ ("," ~ field_decl)*)? ~ ","? ~ "}" }
+record_decl = { KW_RECORD ~ ident ~ "{" ~ (field_decl ~ ("," ~ field_decl)*)? ~ ","? ~ "}" }
 enum_field = { ident ~ ":" ~ type_name }
 enum_variant = { ident ~ ("(" ~ (type_name ~ ("," ~ type_name)*)? ~ ")" | "{" ~ (enum_field ~ ("," ~ enum_field)*)? ~ "}")? }
-enum_decl = { "enum" ~ ident ~ "{" ~ (enum_variant ~ ("," ~ enum_variant)*)? ~ ","? ~ "}" }
+enum_decl = { KW_ENUM ~ ident ~ "{" ~ (enum_variant ~ ("," ~ enum_variant)*)? ~ ","? ~ "}" }
 
 // Syntax rules for custom language elements
-trait_method = { "fn" ~ ident ~ "(" ~ (param ~ ("," ~ param)*)? ~ ")" ~ ("->" ~ type_name)? ~ ";" }
-trait_decl = { "trait" ~ ident ~ "{" ~ trait_method* ~ "}" }
-impl_decl = { "impl" ~ (ident ~ "for")? ~ ident ~ "{" ~ fn_decl* ~ "}" }
-module_decl = { "module" ~ ident ~ "{" ~ stmt* ~ "}" }
-use_stmt = { "use" ~ (ident ~ "::")* ~ (ident | "*") ~ ";" }
-export_stmt = { "export" ~ ident ~ ";" }
-contract_decl = { "contract" ~ ident ~ "{" ~ invariant_stmt* ~ "}" }
-invariant_stmt = { "invariant" ~ expr ~ ";" }
-newtype_decl = { "newtype" ~ ident ~ "=" ~ type_name ~ ";" }
-test_decl = { "test" ~ fn_decl }
-bench_decl = { "bench" ~ fn_decl }
-extern_decl = { "extern" ~ string? ~ fn_decl }
-unsafe_stmt = { "unsafe" ~ block }
-trusted_decl = { "trusted" ~ fn_decl }
-ensure_stmt = { "ensure" ~ expr ~ "else" ~ expr ~ ";" }
-throw_stmt = { "throw" ~ expr ~ ";" }
+trait_method = { KW_FN ~ ident ~ "(" ~ (param ~ ("," ~ param)*)? ~ ")" ~ ("->" ~ type_name)? ~ ";" }
+trait_decl = { KW_TRAIT ~ ident ~ "{" ~ trait_method* ~ "}" }
+impl_decl = { KW_IMPL ~ (ident ~ KW_FOR)? ~ ident ~ "{" ~ fn_decl* ~ "}" }
+module_decl = { KW_MODULE ~ ident ~ "{" ~ stmt* ~ "}" }
+use_stmt = { KW_USE ~ (ident ~ "::")* ~ (ident | "*") ~ ";" }
+export_stmt = { KW_EXPORT ~ ident ~ ";" }
+contract_decl = { KW_CONTRACT ~ ident ~ "{" ~ invariant_stmt* ~ "}" }
+invariant_stmt = { KW_INVARIANT ~ expr ~ ";" }
+newtype_decl = { KW_NEWTYPE ~ ident ~ "=" ~ type_name ~ ";" }
+test_decl = { KW_TEST ~ fn_decl }
+bench_decl = { KW_BENCH ~ fn_decl }
+extern_decl = { KW_EXTERN ~ string? ~ fn_decl }
+unsafe_stmt = { KW_UNSAFE ~ block }
+trusted_decl = { KW_TRUSTED ~ fn_decl }
+ensure_stmt = { KW_ENSURE ~ expr ~ KW_ELSE ~ expr ~ ";" }
+throw_stmt = { KW_THROW ~ expr ~ ";" }
 
 unary_op = { "-" | "!" }
 record_field = { ident ~ ":" ~ expr }
-record_name = @{ !("true" | "false") ~ ident }
+record_name = @{ !(("true" | "false") ~ !IDENT_CHAR) ~ ident }
 enum_variant_expr = { ident ~ "::" ~ ident ~ ("{" ~ (record_field ~ ("," ~ record_field)*)? ~ ","? ~ "}")? }
 record_expr = { record_name ~ "{" ~ (record_field ~ ("," ~ record_field)*)? ~ ","? ~ "}" }
 field_access = { (call | ident | paren) ~ ("." ~ ident)+ }
@@ -159,7 +252,7 @@ term = { unary_op? ~ atom }
 bin_op = _{ "+" | "-" | "*" | "/" | "&&" | "||" | "==" | "<" | ">" }
 pattern = @{ "_" | ident ~ "::" ~ ident ~ ("{" ~ (ident ~ ("," ~ ident)*)? ~ "}")? | ("Ok" | "Err") ~ "(" ~ ident ~ ")" }
 match_arm = { pattern ~ "=>" ~ expr }
-match_expr = { "match" ~ expr ~ "{" ~ (match_arm ~ ("," ~ match_arm)*)? ~ ","? ~ "}" }
+match_expr = { KW_MATCH ~ expr ~ "{" ~ (match_arm ~ ("," ~ match_arm)*)? ~ ","? ~ "}" }
 
 block = { "{" ~ stmt* ~ expr? ~ "}" }
 if_stmt = { KW_IF ~ expr ~ block ~ (KW_ELSE ~ block)? }

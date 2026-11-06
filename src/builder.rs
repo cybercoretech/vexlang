@@ -495,7 +495,7 @@ impl<'a> TextParser<'a> {
             let (op, precedence) = match self.peek() {
                 Some(b'|') if self.input.get(self.pos + 1) == Some(&b'|') => (Op::Or, 1),
                 Some(b'&') if self.input.get(self.pos + 1) == Some(&b'&') => (Op::And, 2),
-                Some(b'=') if self.input.get(self.pos + 1) == Some(&b'=') => (Op::Eq, 1),
+                Some(b'=') if self.input.get(self.pos + 1) == Some(&b'=') => (Op::Eq, 3),
                 Some(b'<') => (Op::Lt, 3),
                 Some(b'>') => (Op::Gt, 3),
                 Some(b'+') => (Op::Add, 4),
