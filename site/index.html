@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#080d15">
-<meta name="description" content="VexLang is a small experimental programming language and typed-IR prototype from the Cybercore ecosystem.">
+<meta name="description" content="VexLang is a small experimental programming language, typed-IR prototype and package ecosystem from Cybercore. Install with cargo install vexlang.">
 <title>VexLang // Small language. Sharp edges.</title>
 <link rel="icon" type="image/svg+xml" href="assets/vex-mark-grid.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
@@ -13,14 +13,14 @@
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="manifest" href="assets/site.webmanifest">
 <meta property="og:title" content="VexLang // Small language. Sharp edges.">
-<meta property="og:description" content="An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.">
+<meta property="og:description" content="An alpha interpreter, typed-IR prototype, Rust transpiler and package manager for experimenting with syntax, semantics, and deliberate lowering.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://cybercoretech.github.io/vexlang/">
 <meta property="og:image" content="https://cybercoretech.github.io/vexlang/assets/og/og-image.png">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="VexLang // Small language. Sharp edges.">
-<meta name="twitter:description" content="An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.">
+<meta name="twitter:description" content="An alpha interpreter, typed-IR prototype, Rust transpiler and package manager for experimenting with syntax, semantics, and deliberate lowering.">
 <meta name="twitter:image" content="https://cybercoretech.github.io/vexlang/assets/og/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,7 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
 .canvas{border:1px solid #355568;background:rgba(8,13,21,.86);box-shadow:0 30px 90px rgba(0,0,0,.32)}.tabs{display:flex;align-items:center;border-bottom:1px solid var(--line);font:.7rem var(--mono)}.tab{padding:.78rem 1rem;color:var(--muted);border-right:1px solid var(--line)}.tab.active{color:var(--lime);background:rgba(120,255,56,.07);border-top:2px solid var(--lime)}.canvas-meta{margin-left:auto;padding-right:1rem;color:var(--dim);font:.58rem var(--mono)}.editor{display:grid;grid-template-columns:1.03fr .97fr;min-height:315px}.code,.ir{padding:1.2rem 1.25rem;font:.72rem/1.9 var(--mono)}.code{border-right:1px solid var(--line);color:var(--muted)}.line{display:block}.ln{display:inline-block;width:2rem;color:#476276}.kw{color:#d18cff}.type{color:var(--cyan)}.value{color:var(--lime)}.comment{color:#607a8a}.ir{color:var(--cyan)}.ir-title{color:var(--ink);margin-bottom:.5rem}.ir .muted{color:var(--dim)}.annotation{display:inline-block;margin:1.4rem 0 0;padding:.55rem .7rem;border:1px solid #27849a;color:var(--cyan)}.canvas-foot{display:flex;justify-content:space-between;padding:.7rem 1rem;border-top:1px solid var(--line);color:var(--dim);font:.62rem var(--mono)}.canvas-foot b{color:var(--lime);font-weight:500}
 .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.2rem 0 0}.status{padding:1rem;border:1px solid var(--line);background:var(--panel)}.status h3{margin:0 0 .6rem;font:600 .7rem var(--mono);letter-spacing:.12em}.status strong{display:block;font:700 1.15rem var(--mono)}.status p{margin:.6rem 0 0;color:var(--dim);font:.65rem var(--mono)}.status.online h3,.status.online strong{color:var(--lime)}.status.verified h3,.status.verified strong{color:var(--cyan)}.status.experimental{border-color:#66522c}.status.experimental h3,.status.experimental strong{color:var(--amber)}
 .section{padding:7rem 0 1rem}.section-kicker{color:var(--cyan);font:600 .7rem var(--mono);letter-spacing:.18em}.section h2{max-width:720px;margin:.8rem 0 1rem;font-size:clamp(2.2rem,4.5vw,4.3rem);line-height:.96;letter-spacing:-.07em}.intro{max-width:620px;color:var(--muted);line-height:1.7}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.4rem}.card{padding:1.5rem;border:1px solid var(--line);background:linear-gradient(145deg,var(--panel2),var(--panel));min-height:230px}.card-index{color:var(--lime);font:600 .68rem var(--mono)}.card h3{margin:2.6rem 0 .55rem;font-size:1.2rem}.card p{color:var(--muted);line-height:1.6;font-size:.92rem}.card code{color:var(--cyan);font:.68rem var(--mono)}
-.alpha{display:grid;grid-template-columns:1fr .8fr;gap:1rem;margin-top:2.4rem}.notice,.commands{padding:1.5rem;border:1px solid var(--line);background:var(--panel)}.notice{border-left:3px solid var(--amber)}.notice h3{margin:0 0 .7rem;color:var(--amber);font:600 .75rem var(--mono);letter-spacing:.1em}.notice p{margin:0;color:var(--muted);line-height:1.65}.commands pre{margin:0;color:var(--cyan);font:.72rem/1.9 var(--mono);overflow:auto}.commands .comment{color:var(--dim)}
+.alpha{display:grid;grid-template-columns:1fr .8fr;gap:1rem;margin-top:2.4rem}.notice,.commands{padding:1.5rem;border:1px solid var(--line);background:var(--panel)}.notice{border-left:3px solid var(--amber)}.vexlab-out-line{display:block}.notice.notice-live{border-left-color:var(--lime)}.notice.notice-live h3{color:var(--lime)}.notice a{color:var(--cyan)}.intro code,.card p code{color:var(--cyan);font:.85em var(--mono)}.notice h3{margin:0 0 .7rem;color:var(--amber);font:600 .75rem var(--mono);letter-spacing:.1em}.notice p{margin:0;color:var(--muted);line-height:1.65}.commands pre{margin:0;color:var(--cyan);font:.72rem/1.9 var(--mono);overflow:auto}.commands .comment{color:var(--dim)}
 .milestone-box{margin-top:2rem;max-height:380px;overflow-y:auto;border:1px solid var(--line);background:var(--panel);padding:1.5rem;display:grid;gap:1.2rem;scrollbar-width:thin;scrollbar-color:var(--cyan) var(--panel2)}
 .milestone-box::-webkit-scrollbar{width:8px}.milestone-box::-webkit-scrollbar-track{background:var(--panel2)}.milestone-box::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:4px}
 .milestone-item{border-bottom:1px solid var(--line);padding-bottom:1rem}.milestone-item:last-child{border-bottom:none;padding-bottom:0}
@@ -54,6 +54,7 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
   </a>
   <nav class="main-nav" aria-label="Primary navigation">
     <a href="#language">language</a>
+    <a href="#packages">packages</a>
     <a href="#milestones-section">milestones</a>
     <a href="#playground">playground</a>
     <a href="keywords.html">keywords</a>
@@ -63,24 +64,25 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
   <button class="theme-trigger" type="button" data-theme-open aria-haspopup="dialog"><span class="theme-dot"></span><span>CYBERCORE THEME</span><b id="theme-current">—</b><span aria-hidden="true">⌄</span></button>
 </header>
 <main id="main">
-<section class="shell hero" id="playground"><div><div class="eyebrow">CYBERCORE LANGUAGE LAB</div><h1>Vex<span>Lang</span></h1><h2>Small language. Sharp edges.</h2><p>An alpha interpreter, typed-IR prototype, and standalone Rust transpiler for experimenting with syntax, semantics, and deliberate lowering.</p><div class="actions"><a class="button primary" href="https://github.com/cybercoretech/vexlang#quick-start">Run Vex <span>↗</span></a><a class="button" href="https://github.com/cybercoretech/vexlang/blob/main/docs/src/language.md">Read the language reference <span>→</span></a></div><div class="release"><i></i> 0.1.0-alpha.2 · Rust 1.85+ · MIT</div></div>
-<div class="canvas"><div class="tabs"><span class="tab active">main.vex</span><span class="tab">typed IR</span><span class="tab">qbe</span><span class="canvas-meta">VEXLANG 0.1.0-ALPHA.1</span></div><div class="editor"><pre class="code"><span class="line"><span class="ln">1</span><span class="comment">// a tiny Vex program</span></span><span class="line"><span class="ln">2</span><span class="kw">let</span> answer = (<span class="value">10</span> + <span class="value">2</span>) * <span class="value">3</span>;</span><span class="line"><span class="ln">3</span>answer;</span></pre><pre class="ir"><span class="ir-title">TYPED IR / VERIFIED</span><span class="line">let answer: <span class="type">i32</span> = [<span class="type">i32</span>]((<span class="value">10</span> Add <span class="value">2</span>) Mul <span class="value">3</span>);</span><span class="line">[<span class="type">i32</span>]answer;</span><span class="annotation">run → Int(36)</span></pre></div><div class="canvas-foot"><span>VEX <b>›</b> CHECK <b>›</b> LOWER <b>›</b> RUN</span><span>same source. clearer computation.</span></div></div></section>
+<section class="shell hero" id="playground"><div><div class="eyebrow">CYBERCORE LANGUAGE LAB</div><h1>Vex<span>Lang</span></h1><h2>Small language. Sharp edges.</h2><p>An alpha interpreter, typed-IR prototype, Rust transpiler and package manager for experimenting with syntax, semantics, and deliberate lowering.</p><div class="actions"><a class="button primary" href="https://github.com/cybercoretech/vexlang#quick-start">Run Vex <span>↗</span></a><a class="button" href="https://github.com/cybercoretech/vexlang/blob/main/docs/src/language.md">Read the language reference <span>→</span></a></div><div class="release"><i></i> 0.1.0-alpha.2 · Rust 1.85+ · MIT</div></div>
+<div class="canvas"><div class="tabs"><span class="tab active">main.vex</span><span class="tab">typed IR</span><span class="tab">qbe</span><span class="canvas-meta">VEXLANG 0.1.0-ALPHA.2</span></div><div class="editor"><pre class="code"><span class="line"><span class="ln">1</span><span class="comment">// a tiny Vex program</span></span><span class="line"><span class="ln">2</span><span class="kw">let</span> answer = (<span class="value">10</span> + <span class="value">2</span>) * <span class="value">3</span>;</span><span class="line"><span class="ln">3</span>answer;</span></pre><pre class="ir"><span class="ir-title">TYPED IR / VERIFIED</span><span class="line">let answer: <span class="type">i32</span> = [<span class="type">i32</span>]((<span class="value">10</span> Add <span class="value">2</span>) Mul <span class="value">3</span>);</span><span class="line">[<span class="type">i32</span>]answer;</span><span class="annotation">run → Int(36)</span></pre></div><div class="canvas-foot"><span>VEX <b>›</b> CHECK <b>›</b> LOWER <b>›</b> RUN</span><span>same source. clearer computation.</span></div></div></section>
 <section class="shell status-grid" aria-label="VexLang status"><article class="status online"><h3>01 / RUN</h3><strong>INTERPRETER</strong><p>status: ready</p></article><article class="status verified"><h3>02 / CHECK</h3><strong>TYPED IR</strong><p>status: valid</p></article><article class="status experimental"><h3>03 / LOWER</h3><strong>QBE IL / RUST</strong><p>status: active</p></article></section>
 <section class="shell section" id="vexlab">
 <div class="section-kicker">// vexlab</div>
 <h2>One editor. Every artifact. Live output.</h2>
-<p class="intro">Three real programs, one window. The editor is the front door to the toolchain: same source, checked, lowered, then run.</p>
+<p class="intro">Four real programs, one window, including one that imports a package. The editor is the front door to the toolchain: same source, checked, lowered, then run.</p>
 <div class="vexlab-window" role="group" aria-label="VexLab editor preview">
   <div class="vexlab-titlebar">
     <span class="tl red"></span><span class="tl amber"></span><span class="tl green"></span>
     <span class="vexlab-file">vex run.vex</span>
-    <span class="vexlab-tag">VEXLANG 0.1.0-ALPHA.1</span>
+    <span class="vexlab-tag">VEXLANG 0.1.0-ALPHA.2</span>
   </div>
   <div class="vexlab-toolbar">
     <div class="vexlab-tabs" role="tablist" aria-label="Open files">
       <button class="vexlab-tab is-on" type="button" role="tab" aria-selected="true" data-file="vexrun"><span class="vt-dot"></span>vex run.vex</button>
       <button class="vexlab-tab" type="button" role="tab" aria-selected="false" data-file="mathvex"><span class="vt-dot"></span>math.vex</button>
       <button class="vexlab-tab" type="button" role="tab" aria-selected="false" data-file="pointvex"><span class="vt-dot"></span>point.vex</button>
+      <button class="vexlab-tab" type="button" role="tab" aria-selected="false" data-file="appvex"><span class="vt-dot"></span>app.vex</button>
     </div>
     <button class="vexlab-run" type="button" id="vexlab-run">RUN</button>
   </div>
@@ -89,12 +91,26 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
       <pre class="vexlab-source" data-file="vexrun"><code><span class="t-kw">let</span> answer = (<span class="t-num">10</span> + <span class="t-num">2</span>) * <span class="t-num">3</span>;
 <span class="t-kw">answer</span>;</code></pre>
       <pre class="vexlab-out" data-file="vexrun"><span class="vexlab-out-line ok"><span class="vexlab-out-prompt">$</span> vexlang run vexrun.vex</span><span class="vexlab-out-line"><span class="vexlab-out-prompt">→</span> Int(36)</span></pre>
+      <pre class="vexlab-source" data-file="mathvex" hidden><code><span class="t-kw">let</span> x = <span class="t-num">0</span>;
+<span class="t-kw">while</span> x &lt; <span class="t-num">3</span> { x = x + <span class="t-num">1</span>; }
+x;</code></pre>
+      <pre class="vexlab-out" data-file="mathvex" hidden><span class="vexlab-out-line ok"><span class="vexlab-out-prompt">$</span> vexlang run mathvex.vex</span><span class="vexlab-out-line"><span class="vexlab-out-prompt">→</span> Int(3)</span></pre>
+      <pre class="vexlab-source" data-file="pointvex" hidden><code><span class="t-kw">record</span> <span class="t-ty">Point</span> { x: <span class="t-ty">i32</span>, y: <span class="t-ty">i32</span> }
+<span class="t-kw">let</span> p: <span class="t-ty">Point</span> = <span class="t-ty">Point</span> { x: <span class="t-num">2</span>, y: <span class="t-num">3</span> };
+p.x + p.y;</code></pre>
+      <pre class="vexlab-out" data-file="pointvex" hidden><span class="vexlab-out-line ok"><span class="vexlab-out-prompt">$</span> vexlang run pointvex.vex</span><span class="vexlab-out-line"><span class="vexlab-out-prompt">→</span> Int(5)</span></pre>
+      <pre class="vexlab-source" data-file="appvex" hidden><code><span class="t-com">// vexlang add vexstd</span>
+<span class="t-kw">use</span> vexstd;
+<span class="t-kw">let</span> score = clamp(<span class="t-num">150</span>, <span class="t-num">0</span>, <span class="t-num">100</span>);
+println(score);
+gcd(<span class="t-num">48</span>, <span class="t-num">18</span>);</code></pre>
+      <pre class="vexlab-out" data-file="appvex" hidden><span class="vexlab-out-line ok"><span class="vexlab-out-prompt">$</span> vexlang run app.vex</span><span class="vexlab-out-line">100</span><span class="vexlab-out-line"><span class="vexlab-out-prompt">→</span> Int(6)</span></pre>
     </div>
   </div>
   <div class="vexlab-status">
     <span>● 0 errors</span>
-    <span>● 5 lines</span>
-    <span>● VEXLANG 0.1.0-ALPHA.1</span>
+    <span class="vexlab-lines">● 2 lines</span>
+    <span>● VEXLANG 0.1.0-ALPHA.2</span>
     <span class="vexlab-status-right">CHECK → LOWER → RUN</span>
   </div>
 </div>
@@ -191,7 +207,16 @@ pub fn add(a: i32, b: i32) -> i32 {
   </div>
 </dialog>
 </section>
-<section class="shell section" id="language"><div class="section-kicker">// language surface</div><h2>Expressive enough to explore. Small enough to understand.</h2><p class="intro">Vex keeps the core visible: declarations, expressions, control flow, functions, records, arrays, modules, traits, impls, contracts, newtypes, diagnostics, and a typed intermediate representation.</p><div class="cards"><article class="card"><div class="card-index">[01] SYNTAX</div><h3>Readable by design</h3><p>Minimal statements, familiar operators, typed functions, records, enums, modules, traits, impls, contracts, and newtypes.</p><code>let · fn · mod · trait · impl</code></article><article class="card"><div class="card-index">[02] SEMANTICS</div><h3>Checkable by default</h3><p>Bounded execution, checked arithmetic, explicit diagnostics, and hard failures when a program crosses a supported boundary.</p><code>parse · infer · verify</code></article><article class="card"><div class="card-index">[03] LOWERING</div><h3>Transparent by construction</h3><p>Build deterministic textual IR first, then explore verified scalar QBE IL or standalone Rust transpilation via `vexlang rust`.</p><code>IR · target · rust</code></article></div></section>
+<section class="shell section" id="language"><div class="section-kicker">// language surface</div><h2>Expressive enough to explore. Small enough to understand.</h2><p class="intro">Vex keeps the core visible: declarations, expressions, control flow, functions, records, arrays, modules, traits, impls, contracts, newtypes, diagnostics, and a typed intermediate representation.</p><div class="cards"><article class="card"><div class="card-index">[01] SYNTAX</div><h3>Readable by design</h3><p>Minimal statements, familiar operators, typed functions, records, enums, modules with working imports, traits, impls, contracts, and newtypes.</p><code>let · fn · use · trait · impl</code></article><article class="card"><div class="card-index">[02] SEMANTICS</div><h3>Checkable by default</h3><p>Bounded execution, checked arithmetic, explicit diagnostics, and hard failures when a program crosses a supported boundary.</p><code>parse · infer · verify</code></article><article class="card"><div class="card-index">[03] LOWERING</div><h3>Transparent by construction</h3><p>Build deterministic textual IR first, then explore verified scalar QBE IL or standalone Rust transpilation via `vexlang rust`.</p><code>IR · target · rust</code></article></div></section>
+<section class="shell section" id="packages"><div class="section-kicker">// packages</div><h2>Share code. Verify every byte.</h2><p class="intro">Vex packages are listed in one static <code>index.json</code> in a Git repository. There is no registry server and no account to create. Publishing a version is a pull request, and every download is checked against its SHA-256 before it is unpacked.</p><div class="cards"><article class="card"><div class="card-index">[01] IMPORTS</div><h3>use loads real code</h3><p><code>use NAME;</code> finds an inline <code>module</code>, a sibling <code>NAME.vex</code>, or an installed package. Modules contain declarations only, so importing never runs code, and name clashes are reported with both locations.</p><code>module · use · export</code></article><article class="card"><div class="card-index">[02] INSTALLS</div><h3>Locked and reproducible</h3><p><code>[dependencies]</code> in <code>vex.toml</code> resolve transitively into <code>vex_modules/</code>. <code>vex.lock</code> pins every URL and hash; <code>--locked</code> fails CI on drift and <code>--offline</code> installs from the cache.</p><code>add · install · remove</code></article><article class="card"><div class="card-index">[03] PUBLISHING</div><h3>A pull request, not a server</h3><p><code>vexlang package</code> builds a reproducible tarball. <code>vexlang publish</code> records it in a checkout of the index, and the index CI downloads and verifies it. Published versions are immutable; broken ones get yanked.</p><code>package · publish · yank</code></article></div><div class="alpha"><div class="notice notice-live"><h3>FIRST PACKAGE: VEXSTD 0.1.0</h3><p>Integer math and <code>Result</code> helpers: <code>clamp</code>, <code>gcd</code>, <code>pow</code>, <code>unwrap_or</code> and more. Source in <a href="https://github.com/cybercoretech/vexstd">cybercoretech/vexstd</a>, listed in <a href="https://github.com/cybercoretech/vex-index">cybercoretech/vex-index</a>. The CLI is on <a href="https://crates.io/crates/vexlang">crates.io</a>, and the full rules are in the <a href="docs/packages.html">modules and packages guide</a>.</p></div><div class="commands"><pre><span class="comment"># start a project and add a package</span>
+vexlang new app &amp;&amp; cd app
+vexlang add vexstd
+<span class="comment"># CI: install exactly what vex.lock pins</span>
+vexlang install --locked
+<span class="comment"># browse the index</span>
+vexlang search std
+vexlang info vexstd</pre></div></div></section>
+
 <section class="shell section" id="milestones-section"><div class="section-kicker">// project roadmap & milestones</div><h2>Built step-by-step. Verified at every phase.</h2><p class="intro">Explore the Vexlang milestone roadmap instantly in the scrollable view below.</p>
 <div class="milestone-box">
   <div class="milestone-item">
@@ -204,7 +229,7 @@ pub fn add(a: i32, b: i32) -> i32 {
   </div>
   <div class="milestone-item">
     <strong style="color:var(--cyan);font-family:var(--mono);">Phase 9: Language Expansion (Completed)</strong>
-    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">User-defined records, typed arrays, enums, Result propagation, scoped maps, modules (`mod`), imports (`use`), exports, traits, impls, contracts, and newtypes.</p>
+    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">User-defined records, typed arrays, enums, Result propagation, scoped maps, modules (`module`), imports (`use`), exports, traits, impls, contracts, and newtypes.</p>
   </div>
   <div class="milestone-item">
     <strong style="color:var(--amber);font-family:var(--mono);">Milestone 12: Production Diagnostics</strong>
@@ -215,19 +240,21 @@ pub fn add(a: i32, b: i32) -> i32 {
     <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">Experimental scalar QBE IL backend and standalone Rust transpiler backend (`vexlang rust`), compiled directly with `rustc`.</p>
   </div>
   <div class="milestone-item">
-    <strong style="color:var(--dim);font-family:var(--mono);">Milestone 14: Ecosystem & Tooling (Upcoming)</strong>
-    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">Package management, LSP/editor integration, formatter, and compatibility policies.</p>
+    <strong style="color:var(--cyan);font-family:var(--mono);">Milestone 14: Ecosystem & Tooling (In progress)</strong>
+    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">Done: <code>use</code> resolution, <code>[dependencies]</code> with <code>vex.lock</code>, verified installs, the static <a href="https://github.com/cybercoretech/vex-index">vex-index</a>, the first package <a href="https://github.com/cybercoretech/vexstd">vexstd</a>, and <code>cargo install vexlang</code> from crates.io. Next: module namespaces, version ranges, LSP/editor integration, and a formatter.</p>
   </div>
 </div>
 </section>
-<section class="shell section"><div class="section-kicker">// alpha boundary</div><h2>Prototype openly. Promise precisely.</h2><div class="alpha"><div class="notice"><h3>VEX IS ALPHA SOFTWARE</h3><p>It is not a production compiler or native toolchain yet. QBE emits intermediate language only; it does not assemble, link, or package a native executable. Syntax and APIs may evolve.</p></div><div class="commands"><pre><span class="comment"># try the interpreter</span>
-cargo run -- run program.vex
+<section class="shell section"><div class="section-kicker">// alpha boundary</div><h2>Prototype openly. Promise precisely.</h2><div class="alpha"><div class="notice"><h3>VEX IS ALPHA SOFTWARE</h3><p>It is not a production compiler or native toolchain yet. QBE emits intermediate language only; it does not assemble, link, or package a native executable. Syntax and APIs may evolve.</p></div><div class="commands"><pre><span class="comment"># install from crates.io</span>
+cargo install vexlang
+<span class="comment"># try the interpreter</span>
+vexlang run program.vex
 <span class="comment"># inspect the typed lowering</span>
-cargo run -- ir program.vex
+vexlang ir program.vex
 <span class="comment"># explore experimental QBE IL</span>
-cargo run -- qbe program.vex
+vexlang qbe program.vex
 <span class="comment"># transpile to standalone Rust</span>
-cargo run -- rust program.vex</pre></div></div></section>
+vexlang rust program.vex</pre></div></div></section>
 </main>
   <section class="contact-band" aria-label="Contact Cybercore Tech" style="position:relative;z-index:1;padding:3rem 0 0;border-top:1px solid var(--line,#32303e)">
     <div style="width:min(1160px,calc(100% - 44px));margin-inline:auto"><cybercore-contact><a href="mailto:dev@cybercoretech.net">dev@cybercoretech.net</a></cybercore-contact></div>
