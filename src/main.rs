@@ -164,17 +164,11 @@ fn pipeline(source: &str) -> Result<Vec<ast::Stmt>, Diagnostic> {
     Ok(stmts)
 }
 
-/// Prepends the declarations that the program's `use` statements import.
-/// The resolved `use` statements are dropped: their declarations are now part
-/// of the program, so backends never see a `use` they cannot express.
+/// Prepends the declarations that the program's `use` statements import and
+/// points calls at them (see [`modules::resolve`]). The resolved `use`
+/// statements are dropped, so backends never see a `use` they cannot express.
 fn with_imports(stmts: Vec<ast::Stmt>, source: &str) -> Result<Vec<ast::Stmt>, Diagnostic> {
-    let mut program = modules::resolve(&stmts, source)?;
-    program.extend(
-        stmts
-            .into_iter()
-            .filter(|stmt| !matches!(stmt, ast::Stmt::Use { .. })),
-    );
-    Ok(program)
+    modules::resolve(stmts, source)
 }
 
 fn pipeline_all(source: &str) -> Result<Vec<ast::Stmt>, Vec<Diagnostic>> {

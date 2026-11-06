@@ -231,7 +231,7 @@ impl RustBackend {
         let mut output = String::new();
 
         output.push_str("pub fn ");
-        output.push_str(name);
+        output.push_str(&crate::ast::link_name(name));
         output.push('(');
 
         let param_strs: Vec<String> = params
@@ -464,7 +464,7 @@ impl RustBackend {
                 }
                 _ => {
                     let arg_strs: Vec<String> = args.iter().map(|a| self.emit_expr(a)).collect();
-                    format!("{}({})", name, arg_strs.join(", "))
+                    format!("{}({})", crate::ast::link_name(name), arg_strs.join(", "))
                 }
             },
             Expr::Record(name, fields) => {

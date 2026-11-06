@@ -642,7 +642,11 @@ impl QbeEmitter {
                     arg_temps.push(format!("w {t}"));
                 }
                 let temp = self.fresh_temp();
-                self.emit_instruction(&format!("{temp} =w call ${name}({})", arg_temps.join(", ")));
+                self.emit_instruction(&format!(
+                    "{temp} =w call ${}({})",
+                    crate::ast::link_name(name),
+                    arg_temps.join(", ")
+                ));
                 temp
             }
             _ => panic!("ICE: non-scalar expression slipped past target validation"),
@@ -771,7 +775,7 @@ fn emit_qbe_function(function: &IrFunction) -> Result<String, BackendError> {
 
     let mut out = format!(
         "function w ${}({}) {{\n@start\n",
-        function.name,
+        crate::ast::link_name(&function.name),
         params.join(", ")
     );
     for alloc in &emitter.allocations {

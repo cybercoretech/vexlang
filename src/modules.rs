@@ -9,17 +9,26 @@
 //! 3. an installed package: `<project>/vex_modules/NAME/`, entry file from
 //!    its `vex.toml` `lib` key (default `src/lib.vex`).
 //!
-//! Version 1 semantics, kept deliberately simple:
+//! Semantics:
 //!
-//! - **Flat namespace.** A module's declarations are merged into the program
-//!   under their own names. Two modules (or a module and the program) that
-//!   declare the same name are an error that names both.
+//! - **Functions are namespaced.** A module's functions can always be called
+//!   as `NAME::function(...)`. `use NAME;` (or `use NAME::*;`) also makes
+//!   them callable unqualified, and `use NAME::function;` makes just that
+//!   one callable unqualified (it takes precedence over glob imports). Internally they are renamed `NAME::function`,
+//!   so equal names in different modules never collide: a function the
+//!   program declares itself wins over a glob import, and a name that two
+//!   globs provide is an error only when it is called unqualified.
+//! - **Types share one namespace.** Records, enums, traits, newtypes,
+//!   contracts, `impl` methods and `extern`/`trusted` functions keep their
+//!   names. Two modules (or a module and the program) that declare the same
+//!   such name are an error that names both.
 //! - **Declarations only.** A module may contain `fn`, `record`, `enum`,
 //!   `trait`, `impl`, `newtype`, `contract`, `use`, `export`, `module`,
 //!   `test` and `bench`. Top-level statements are rejected so that importing
 //!   never runs code. `test`/`bench` items in a module are not imported.
-//! - **Exports.** If a module has `export` statements, `use NAME::item` may
-//!   only name exported items. Without exports, every item is public.
+//! - **Exports.** If a module has `export` statements, only exported items
+//!   can be imported or called as `NAME::item`. Without exports, every item
+//!   is public.
 //! - Each module is loaded once; import cycles are an error.
 
 use std::cell::RefCell;
@@ -28,7 +37,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::analyzer::SemanticAnalyzer;
-use crate::ast::Stmt;
+use crate::ast::{Expr, Stmt};
 use crate::builder::build_ast_with_spans;
 use crate::diagnostics::{Diagnostic, span_for};
 use crate::parser::parse_vex;
@@ -80,11 +89,22 @@ fn current_context() -> ModuleContext {
         .unwrap_or_else(|| ModuleContext::for_path(None))
 }
 
-/// Declarations to prepend to `program` so that its `use` statements resolve.
-/// Returns an empty list when the program has no `use`.
-pub fn resolve(program: &[Stmt], source: &str) -> Result<Vec<Stmt>, Diagnostic> {
-    if !program.iter().any(|s| matches!(s, Stmt::Use { .. })) {
-        return Ok(Vec::new());
+/// Resolves the program's `use` statements and qualified calls.
+///
+/// Returns the imported declarations followed by the program itself, with
+/// `use` statements removed (backends never see a `use` they cannot
+/// express) and every call to a module function renamed to the
+/// `module::function` name it is declared under.
+pub fn resolve(program: Vec<Stmt>, source: &str) -> Result<Vec<Stmt>, Diagnostic> {
+    let uses_modules = program.iter().any(|s| matches!(s, Stmt::Use { .. }));
+    let mut qualified = false;
+    for stmt in &program {
+        visit_calls(stmt, &mut |name| {
+            qualified |= name.contains("::");
+        });
+    }
+    if !uses_modules && !qualified {
+        return Ok(program);
     }
     let context = current_context();
     let mut loader = Loader {
@@ -94,26 +114,144 @@ pub fn resolve(program: &[Stmt], source: &str) -> Result<Vec<Stmt>, Diagnostic> 
         stack: Vec::new(),
         prelude: Vec::new(),
     };
-    for stmt in program {
+    let mut scope = Scope::new(None, &program);
+    for stmt in &program {
         if let Stmt::Use { path } = stmt {
             let anchor = span_for(source, Some(&format!("use {}", path.join("::"))));
             loader
-                .import(path, &context.base_dir, program)
+                .import(path, &context.base_dir, &program, &mut scope)
                 .map_err(|error| error.into_diagnostic(anchor))?;
         }
     }
-    // The program's own declarations must not clash with imported ones.
-    for name in program.iter().flat_map(declared_names) {
+    // The program's own declarations must not clash with imported types.
+    for name in program.iter().flat_map(shared_names) {
         if let Some(owner) = loader.owners.get(&name) {
             return Err(Diagnostic::new(
                 "E1104",
                 format!("`{name}` is declared here and also imported from module `{owner}`"),
                 span_for(source, Some(&name)),
             )
-            .with_suggestion("rename one of them; modules share one namespace for now"));
+            .with_suggestion("rename one of them; types share one namespace for now"));
         }
     }
-    Ok(loader.prelude)
+    let mut stmts = loader.prelude;
+    for mut stmt in program {
+        if matches!(stmt, Stmt::Use { .. }) {
+            continue;
+        }
+        let mut failure = None;
+        rename_calls(&mut stmt, &mut |name| {
+            if failure.is_none() {
+                match scope.lookup(name, &loader.loaded) {
+                    Ok(Some(target)) => *name = target,
+                    Ok(None) => {}
+                    Err(error) => failure = Some((name.clone(), error)),
+                }
+            }
+        });
+        if let Some((name, error)) = failure {
+            return Err(error.into_diagnostic(span_for(source, Some(&format!("{name}(")))));
+        }
+        stmts.push(stmt);
+    }
+    Ok(stmts)
+}
+
+/// The names one body (the program or a module) can call.
+struct Scope {
+    /// `Some(module)` inside a module: its functions are renamed `module::f`.
+    module: Option<String>,
+    /// Plain functions this body declares itself.
+    own: BTreeSet<String>,
+    /// Unqualified name -> `module::name`, from `use module::name;`.
+    explicit: BTreeMap<String, String>,
+    /// Unqualified name -> `module::name` candidates from glob imports.
+    imported: BTreeMap<String, BTreeSet<String>>,
+    /// Modules this body imports, usable as `module::f`.
+    modules: BTreeSet<String>,
+}
+
+impl Scope {
+    fn new(module: Option<String>, body: &[Stmt]) -> Self {
+        Scope {
+            module,
+            own: body.iter().filter_map(function_name).collect(),
+            explicit: BTreeMap::new(),
+            imported: BTreeMap::new(),
+            modules: BTreeSet::new(),
+        }
+    }
+
+    /// The declared name a call to `name` refers to; `None` keeps it as is
+    /// (builtins, `impl` methods, externs, or unknown names the analyzer
+    /// reports).
+    fn lookup(
+        &self,
+        name: &str,
+        loaded: &BTreeMap<String, LoadedModule>,
+    ) -> Result<Option<String>, LoadError> {
+        if let Some((module, item)) = name.split_once("::") {
+            if item.contains("::") {
+                return Err(LoadError::new(
+                    "E1101",
+                    format!("nested module paths are not supported yet: `{name}`"),
+                ));
+            }
+            if self.module.as_deref() == Some(module) && self.own.contains(item) {
+                return Ok(Some(name.to_string()));
+            }
+            let Some(loaded) = loaded.get(module).filter(|_| self.modules.contains(module)) else {
+                return Err(LoadError::new(
+                    "E1101",
+                    format!("module `{module}` is not imported here, so `{name}` is unknown"),
+                )
+                .hint(format!("add `use {module};` (or `use {module}::{item};`)")));
+            };
+            if !loaded.functions.contains(item) {
+                let what = if loaded.items.contains(item) {
+                    format!("`{item}` in module `{module}` is not a function")
+                } else {
+                    format!("module `{module}` has no function `{item}`")
+                };
+                return Err(LoadError::new("E1101", what));
+            }
+            if !loaded.is_public(item) {
+                return Err(LoadError::new(
+                    "E1105",
+                    format!("`{item}` is not exported by module `{module}`"),
+                )
+                .hint(format!("add `export {item};` to module `{module}`")));
+            }
+            return Ok(Some(name.to_string()));
+        }
+        if self.own.contains(name) {
+            return Ok(self.module.as_ref().map(|m| format!("{m}::{name}")));
+        }
+        if let Some(target) = self.explicit.get(name) {
+            return Ok(Some(target.clone()));
+        }
+        match self.imported.get(name) {
+            None => Ok(None),
+            Some(targets) if targets.len() == 1 => Ok(targets.iter().next().cloned()),
+            Some(targets) => {
+                let modules: Vec<&str> = targets
+                    .iter()
+                    .filter_map(|t| t.split_once("::").map(|(m, _)| m))
+                    .collect();
+                Err(LoadError::new(
+                    "E1104",
+                    format!(
+                        "`{name}` is ambiguous: it is imported from module `{}`",
+                        modules.join("` and module `")
+                    ),
+                )
+                .hint(format!(
+                    "call it as `{}::{name}(...)`, or import only the one you need",
+                    modules[0]
+                )))
+            }
+        }
+    }
 }
 
 struct LoadError {
@@ -146,8 +284,17 @@ impl LoadError {
 }
 
 struct LoadedModule {
+    /// Every declared name (functions and shared names).
     items: BTreeSet<String>,
+    /// Plain functions, declared as `module::name`.
+    functions: BTreeSet<String>,
     exports: BTreeSet<String>,
+}
+
+impl LoadedModule {
+    fn is_public(&self, item: &str) -> bool {
+        self.exports.is_empty() || self.exports.contains(item)
+    }
 }
 
 struct Loader {
@@ -171,6 +318,7 @@ impl Loader {
         path: &[String],
         from_dir: &Path,
         siblings: &[Stmt],
+        scope: &mut Scope,
     ) -> Result<(), LoadError> {
         let (name, item) = match path {
             [name] => (name, None),
@@ -186,21 +334,45 @@ impl Loader {
                 .hint("import the module directly, e.g. `use NAME::item;`"));
             }
         };
+        let item = item.filter(|item| item.as_str() != "*");
         self.load(name, from_dir, siblings)?;
-        if let Some(item) = item {
-            let module = &self.loaded[name];
-            if !module.items.contains(item) {
-                return Err(LoadError::new(
-                    "E1101",
-                    format!("module `{name}` has no item `{item}`"),
-                ));
+        let module = &self.loaded[name];
+        scope.modules.insert(name.clone());
+        match item {
+            Some(item) => {
+                if !module.items.contains(item) {
+                    return Err(LoadError::new(
+                        "E1101",
+                        format!("module `{name}` has no item `{item}`"),
+                    ));
+                }
+                if !module.is_public(item) {
+                    return Err(LoadError::new(
+                        "E1105",
+                        format!("`{item}` is not exported by module `{name}`"),
+                    )
+                    .hint(format!("add `export {item};` to module `{name}`")));
+                }
+                if module.functions.contains(item) {
+                    let target = format!("{name}::{item}");
+                    if let Some(previous) = scope.explicit.get(item).filter(|p| **p != target) {
+                        return Err(LoadError::new(
+                            "E1104",
+                            format!("`{item}` is imported as both `{previous}` and `{target}`"),
+                        )
+                        .hint("import one of them and call the other with its module path"));
+                    }
+                    scope.explicit.insert(item.clone(), target);
+                }
             }
-            if !module.exports.is_empty() && !module.exports.contains(item) {
-                return Err(LoadError::new(
-                    "E1105",
-                    format!("`{item}` is not exported by module `{name}`"),
-                )
-                .hint(format!("add `export {item};` to module `{name}`")));
+            None => {
+                for function in module.functions.iter().filter(|f| module.is_public(f)) {
+                    scope
+                        .imported
+                        .entry(function.clone())
+                        .or_default()
+                        .insert(format!("{name}::{function}"));
+                }
             }
         }
         Ok(())
@@ -283,26 +455,51 @@ impl Loader {
             }
         }
 
+        let mut scope = Scope::new(Some(name.to_string()), &body);
         self.stack.push(name.to_string());
         for stmt in &body {
             if let Stmt::Use { path } = stmt {
-                self.import(path, &dir, &body)?;
+                self.import(path, &dir, &body, &mut scope)?;
             }
         }
         self.stack.pop();
 
-        let own: Vec<Stmt> = body.iter().filter(|s| is_imported(s)).cloned().collect();
-        let mut items = BTreeSet::new();
-        for item in own.iter().flat_map(declared_names) {
+        let mut own: Vec<Stmt> = body.iter().filter(|s| is_imported(s)).cloned().collect();
+        let mut shared = BTreeSet::new();
+        for item in own.iter().flat_map(shared_names) {
             if let Some(owner) = self.owners.get(&item) {
                 return Err(LoadError::new(
                     "E1104",
                     format!("`{item}` is declared by both module `{owner}` and module `{name}`"),
                 )
-                .hint("modules share one namespace for now; rename one of them"));
+                .hint("types share one namespace for now; rename one of them"));
             }
-            items.insert(item);
+            shared.insert(item);
         }
+        let functions = scope.own.clone();
+        for stmt in &mut own {
+            if let Stmt::Function { name: declared, .. } = stmt {
+                *declared = format!("{name}::{declared}");
+            }
+            let mut failure = None;
+            rename_calls(stmt, &mut |call| {
+                if failure.is_none() {
+                    match scope.lookup(call, &self.loaded) {
+                        Ok(Some(target)) => *call = target,
+                        Ok(None) => {}
+                        Err(error) => failure = Some(error),
+                    }
+                }
+            });
+            if let Some(error) = failure {
+                return Err(LoadError {
+                    message: format!("in {label}: {}", error.message),
+                    ..error
+                });
+            }
+        }
+        let mut items = shared.clone();
+        items.extend(functions.iter().cloned());
 
         // Check the module on its own (with its imports) before merging it.
         let mut check = self.prelude.clone();
@@ -325,12 +522,18 @@ impl Loader {
             ));
         }
 
-        for item in &items {
-            self.owners.insert(item.clone(), name.to_string());
+        for item in shared {
+            self.owners.insert(item, name.to_string());
         }
         self.prelude.extend(own);
-        self.loaded
-            .insert(name.to_string(), LoadedModule { items, exports });
+        self.loaded.insert(
+            name.to_string(),
+            LoadedModule {
+                items,
+                functions,
+                exports,
+            },
+        );
         Ok(())
     }
 }
@@ -379,16 +582,123 @@ fn is_imported(stmt: &Stmt) -> bool {
         )
 }
 
-fn declared_names(stmt: &Stmt) -> Vec<String> {
+/// A plain (namespaced) function declared by `stmt`.
+fn function_name(stmt: &Stmt) -> Option<String> {
     match stmt {
-        Stmt::Function { name, .. }
-        | Stmt::Record { name, .. }
+        Stmt::Function { name, .. } => Some(name.clone()),
+        _ => None,
+    }
+}
+
+/// Names declared by `stmt` that live in the one shared namespace.
+fn shared_names(stmt: &Stmt) -> Vec<String> {
+    match stmt {
+        Stmt::Record { name, .. }
         | Stmt::Enum { name, .. }
         | Stmt::Trait { name, .. }
         | Stmt::Newtype { name, .. }
         | Stmt::Contract { name, .. } => vec![name.clone()],
-        Stmt::Impl { methods, .. } => methods.iter().flat_map(declared_names).collect(),
-        Stmt::Extern { func, .. } | Stmt::Trusted(func) => declared_names(func),
+        Stmt::Impl { methods, .. } => methods.iter().flat_map(function_name).collect(),
+        Stmt::Extern { func, .. } | Stmt::Trusted(func) => {
+            function_name(func).into_iter().collect()
+        }
         _ => Vec::new(),
+    }
+}
+
+/// Calls `f` with the name of every call in `stmt`.
+fn visit_calls(stmt: &Stmt, f: &mut dyn FnMut(&str)) {
+    let mut copy = stmt.clone();
+    rename_calls(&mut copy, &mut |name| f(name));
+}
+
+/// Calls `f` on the name of every call in `stmt` (not inside inline
+/// `module` blocks, which are loaded separately).
+fn rename_calls(stmt: &mut Stmt, f: &mut dyn FnMut(&mut String)) {
+    match stmt {
+        Stmt::Function { body, .. } => rename_expr(body, f),
+        Stmt::Let { value, .. } | Stmt::Assign { value, .. } | Stmt::ExprStmt(value) => {
+            rename_expr(value, f)
+        }
+        Stmt::AssignIndex { indices, value, .. } => {
+            indices.iter_mut().for_each(|e| rename_expr(e, f));
+            rename_expr(value, f);
+        }
+        Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            rename_expr(condition, f);
+            rename_expr(then_branch, f);
+            if let Some(e) = else_branch {
+                rename_expr(e, f);
+            }
+        }
+        Stmt::While { condition, body } => {
+            rename_expr(condition, f);
+            rename_expr(body, f);
+        }
+        Stmt::Return(Some(e)) | Stmt::Invariant(e) | Stmt::Unsafe(e) | Stmt::Throw(e) => {
+            rename_expr(e, f)
+        }
+        Stmt::Impl { methods, .. } => methods.iter_mut().for_each(|m| rename_calls(m, f)),
+        Stmt::Contract { invariants, .. } => invariants.iter_mut().for_each(|e| rename_expr(e, f)),
+        Stmt::Test(inner) | Stmt::Bench(inner) | Stmt::Trusted(inner) => rename_calls(inner, f),
+        Stmt::Extern { func, .. } => rename_calls(func, f),
+        Stmt::Ensure { condition, message } => {
+            rename_expr(condition, f);
+            rename_expr(message, f);
+        }
+        Stmt::Return(None)
+        | Stmt::Break
+        | Stmt::Continue
+        | Stmt::Record { .. }
+        | Stmt::Enum { .. }
+        | Stmt::Trait { .. }
+        | Stmt::Module { .. }
+        | Stmt::Use { .. }
+        | Stmt::Export { .. }
+        | Stmt::Newtype { .. } => {}
+    }
+}
+
+fn rename_expr(expr: &mut Expr, f: &mut dyn FnMut(&mut String)) {
+    match expr {
+        Expr::Call(name, args) => {
+            f(name);
+            args.iter_mut().for_each(|a| rename_expr(a, f));
+        }
+        Expr::BinaryOp(a, _, b) | Expr::Index(a, b) => {
+            rename_expr(a, f);
+            rename_expr(b, f);
+        }
+        Expr::UnaryOp(_, e) | Expr::Field(e, _) | Expr::Try(e) => rename_expr(e, f),
+        Expr::Block(stmts, tail) => {
+            stmts.iter_mut().for_each(|s| rename_calls(s, f));
+            if let Some(t) = tail {
+                rename_expr(t, f);
+            }
+        }
+        Expr::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            rename_expr(condition, f);
+            rename_expr(then_branch, f);
+            if let Some(e) = else_branch {
+                rename_expr(e, f);
+            }
+        }
+        Expr::Record(_, fields) | Expr::EnumVariant { fields, .. } => {
+            fields.iter_mut().for_each(|(_, e)| rename_expr(e, f))
+        }
+        Expr::Array(items) => items.iter_mut().for_each(|e| rename_expr(e, f)),
+        Expr::Match { value, arms } => {
+            rename_expr(value, f);
+            arms.iter_mut().for_each(|(_, e)| rename_expr(e, f));
+        }
+        Expr::Int(_) | Expr::String(_) | Expr::Bool(_) | Expr::Var(_) => {}
     }
 }

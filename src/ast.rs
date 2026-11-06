@@ -22,6 +22,12 @@ pub enum Type {
     Array(Box<Type>),
 }
 
+/// The identifier a backend emits for a function name. Module functions are
+/// declared as `module::name`; `::` is not valid in Rust or QBE identifiers.
+pub fn link_name(name: &str) -> String {
+    name.replace("::", "__")
+}
+
 /// A trait method signature: method name, parameters, and return type.
 pub type MethodSig = (String, Vec<(String, Type)>, Type);
 

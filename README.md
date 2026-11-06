@@ -124,11 +124,14 @@ error, and `3` means an explicitly unsupported target/backend operation.
 ```vex
 use math::square;      // math.vex next to this file
 println(square(7));
+println(math::cube(2)); // any public function, called by its module path
 ```
 
-Imports share one namespace for now, so a name declared twice is an error
-that names both places. Modules may only contain declarations, so importing
-never runs code. `export` limits what `use mod::item` may name. Full rules
+Module functions are namespaced: your own `min` wins over an imported one,
+and two packages may both define `min` (call them `a::min` and `b::min`).
+Types still share one namespace, so a record declared twice is an error that
+names both places. Modules may only contain declarations, so importing never
+runs code. `export` limits what other code may import or call. Full rules
 and error codes: [`docs/src/packages.md`](docs/src/packages.md).
 
 ### 📦 Packages
