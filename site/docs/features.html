@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-75634797.js";
+            window.path_to_searchindex_js = "searchindex-7e1f61b6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4818d024.js"></script>
+        <script src="toc-9aac5dea.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,8 +198,9 @@ propagation in the interpreter;</li>
 </ul>
 <h2 id="deferred-or-intentionally-unsupported"><a class="header" href="#deferred-or-intentionally-unsupported">Deferred or intentionally unsupported</a></h2>
 <p>Floating point values, resources (<code>res</code>), map mutation/iteration, generics,
-filesystem access, modules/imports, project execution, and lockfile semantics
-are deferred. Project metadata can be read from a small <code>vex.toml</code>. Record
+filesystem access, nested module namespaces, version ranges and project execution
+are deferred. <code>use</code> imports modules and packages into one shared namespace, and
+<code>vex.toml</code> dependencies are installed with a <code>vex.lock</code> lockfile. Record
 types are the first supported user-defined type. Milestone 9’s lightweight
 compatibility, diagnostic,
 generated-input, and opt-in performance smoke tests are now present; a
@@ -234,7 +235,7 @@ emitter; Cranelift output is intentionally not implemented.</p>
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 <code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
-generics, modules, and project configuration remain post-alpha work.</p>
+generics, module namespaces and version ranges remain post-alpha work.</p>
 
                     </main>
 

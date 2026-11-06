@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- `use` now loads code. It imports declarations from an inline
+  `module NAME { ... }` block, a sibling `NAME.vex` file or an installed
+  package (`vex_modules/NAME/`, entry from its `vex.toml` `lib`). Imports share
+  one namespace with clash detection (`E1104`). Modules may contain
+  declarations only (`E1102`), honour `export` (`E1105`), load once and report
+  cycles (`E1103`). Resolved `use` statements are dropped before analysis, so
+  imported code works in `run`, `check`, `test`, IR, QBE and `rust`.
+  Previously `use` and `module` were parsed and silently ignored.
+- Dependencies: `vex.toml` gains `[dependencies]` (exact versions), `lib` and
+  `description`. New commands: `vexlang new [--lib]`, `add NAME[@VERSION]`
+  (latest non-yanked by default; rolls `vex.toml` back on failure), `remove`,
+  `install [--locked] [--offline]`, `search`, `info`, `yank` and `fetch` (the
+  old download-only `add`). `install` resolves transitively, detects version
+  conflicts, verifies every tarball, unpacks safely (staged; no traversal,
+  links or special files; size and entry limits), prunes unused packages and
+  writes `vex.lock`.
+- Fixed `test fn`, `bench fn`, `trusted fn`, `extern fn` and `impl` methods.
+  They failed to parse ("unsupported statement `ident`"), and once parsed,
+  their functions were not registered with the analyzer or the evaluator.
 - Added package management against a static Git index (no server):
   `vexlang package` builds a reproducible `NAME-VERSION.tar.gz` from
   `vex.toml`, `vexlang publish` records the version (URL, SHA-256, size) in an

@@ -21,6 +21,19 @@ diagnostics to a single machine-readable JSON object on standard error.
 | `target FILE` | Validate against `vex-scalar-v1` and emit textual target IR | `0` |
 | `qbe FILE` | Validate against `vex-scalar-v1` and emit experimental QBE IL | `0` |
 | `rust FILE` | Validate and transpile the program to standalone Rust source code | `0` |
+| `new NAME [--lib]` | Create a program or library project skeleton | `0` |
+| `add NAME[@VER]` | Add a dependency to `vex.toml` and install it | `0` |
+| `remove NAME` | Remove a dependency and uninstall it | `0` |
+| `install [--locked] [--offline]` | Install `vex.toml` dependencies into `vex_modules/`, keeping `vex.lock` | `0` |
+| `search [TERM]`, `info NAME` | Browse the package index | `0` |
+| `fetch NAME@VER [--out DIR]` | Download and verify one package tarball | `0` |
+| `package [vex.toml]` | Build a reproducible `dist/NAME-VERSION.tar.gz` | `0` |
+| `publish --index DIR --url URL` | Record a version in a checkout of the package index | `0` |
+| `yank NAME@VER --index DIR` | Withdraw a published version (one-way) | `0` |
+
+Package commands accept `--index URL|PATH` (default `$VEX_INDEX`, then the
+cybercoretech/vex-index repository) and, where they edit a project,
+`--manifest PATH` (default `./vex.toml`). See [Modules and packages](packages.md).
 
 `vexlang FILE` remains a backwards-compatible alias for `vexlang run FILE`.
 Examples:

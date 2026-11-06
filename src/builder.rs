@@ -82,6 +82,12 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
         .into_inner()
         .next()
         .ok_or_else(|| BuildError("empty statement".into()))?;
+    build_stmt_rule(inner)
+}
+
+/// Builds a statement from the concrete rule inside a `stmt` pair (for
+/// example a bare `fn_decl` nested in `test`, `impl` or `trusted`).
+fn build_stmt_rule(inner: Pair<Rule>) -> Result<Stmt, BuildError> {
     match inner.as_rule() {
         Rule::let_decl => {
             let mut parts = inner.into_inner();
@@ -303,7 +309,7 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
             let mut methods = Vec::new();
             for pair in pairs {
                 if pair.as_rule() == Rule::fn_decl {
-                    methods.push(build_stmt(pair)?);
+                    methods.push(build_stmt_rule(pair)?);
                 }
             }
             Ok(Stmt::Impl {
@@ -353,11 +359,11 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
         }
         Rule::test_decl => {
             let fn_pair = inner.into_inner().next().unwrap();
-            Ok(Stmt::Test(Box::new(build_stmt(fn_pair)?)))
+            Ok(Stmt::Test(Box::new(build_stmt_rule(fn_pair)?)))
         }
         Rule::bench_decl => {
             let fn_pair = inner.into_inner().next().unwrap();
-            Ok(Stmt::Bench(Box::new(build_stmt(fn_pair)?)))
+            Ok(Stmt::Bench(Box::new(build_stmt_rule(fn_pair)?)))
         }
         Rule::extern_decl => {
             let mut pairs = inner.into_inner();
@@ -371,7 +377,7 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
             };
             Ok(Stmt::Extern {
                 abi,
-                func: Box::new(build_stmt(fn_pair)?),
+                func: Box::new(build_stmt_rule(fn_pair)?),
             })
         }
         Rule::unsafe_stmt => {
@@ -380,7 +386,7 @@ fn build_stmt(pair: Pair<Rule>) -> Result<Stmt, BuildError> {
         }
         Rule::trusted_decl => {
             let fn_pair = inner.into_inner().next().unwrap();
-            Ok(Stmt::Trusted(Box::new(build_stmt(fn_pair)?)))
+            Ok(Stmt::Trusted(Box::new(build_stmt_rule(fn_pair)?)))
         }
         Rule::ensure_stmt => {
             let mut pairs = inner.into_inner();

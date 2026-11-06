@@ -23,11 +23,14 @@
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+pub mod install;
 
 /// Index used when neither `--index` nor `VEX_INDEX` is given.
 pub const DEFAULT_INDEX: &str =
@@ -180,6 +183,36 @@ pub fn load_index(location: &str) -> Result<Index> {
 }
 
 impl Index {
+    /// The newest non-yanked version of `name`. Releases win over
+    /// pre-releases; see [`compare_versions`].
+    pub fn latest(&self, name: &str) -> Result<(&str, &VersionEntry)> {
+        let package = self
+            .packages
+            .get(name)
+            .with_context(|| format!("package `{name}` is not in the index"))?;
+        package
+            .versions
+            .iter()
+            .filter(|(_, entry)| !entry.yanked)
+            .max_by(|(a, _), (b, _)| compare_versions(a, b))
+            .map(|(version, entry)| (version.as_str(), entry))
+            .with_context(|| format!("every version of `{name}` has been yanked"))
+    }
+
+    /// Packages whose name or description contains `term` (case-insensitive),
+    /// sorted by name. An empty term lists everything.
+    pub fn search(&self, term: &str) -> Vec<(&str, &PackageEntry)> {
+        let term = term.to_lowercase();
+        self.packages
+            .iter()
+            .filter(|(name, entry)| {
+                name.to_lowercase().contains(&term)
+                    || entry.description.to_lowercase().contains(&term)
+            })
+            .map(|(name, entry)| (name.as_str(), entry))
+            .collect()
+    }
+
     /// The entry for `name@version`, refusing yanked versions.
     pub fn resolve(&self, name: &str, version: &str) -> Result<&VersionEntry> {
         validate_component("name", name)?;
@@ -231,6 +264,79 @@ pub fn add(index: &Index, name: &str, version: &str, out_dir: &Path) -> Result<P
     fs::write(&partial, &bytes).with_context(|| format!("cannot write {}", partial.display()))?;
     fs::rename(&partial, &dest).with_context(|| format!("cannot write {}", dest.display()))?;
     Ok(dest)
+}
+
+/// Orders versions like SemVer: dot-separated numeric parts compare as
+/// numbers, a release sorts after its pre-releases (`1.0.0-rc.1 < 1.0.0`), and
+/// build metadata (`+...`) is ignored. Non-numeric parts compare as text.
+pub fn compare_versions(a: &str, b: &str) -> Ordering {
+    fn split(v: &str) -> (&str, Option<&str>) {
+        let v = v.split('+').next().unwrap_or(v);
+        match v.split_once('-') {
+            Some((core, pre)) => (core, Some(pre)),
+            None => (v, None),
+        }
+    }
+    fn parts(a: &str, b: &str) -> Ordering {
+        let mut left = a.split('.');
+        let mut right = b.split('.');
+        loop {
+            match (left.next(), right.next()) {
+                (None, None) => return Ordering::Equal,
+                (None, Some(_)) => return Ordering::Less,
+                (Some(_), None) => return Ordering::Greater,
+                (Some(x), Some(y)) => {
+                    let order = match (x.parse::<u64>(), y.parse::<u64>()) {
+                        (Ok(x), Ok(y)) => x.cmp(&y),
+                        (Ok(_), Err(_)) => Ordering::Less,
+                        (Err(_), Ok(_)) => Ordering::Greater,
+                        (Err(_), Err(_)) => x.cmp(y),
+                    };
+                    if order != Ordering::Equal {
+                        return order;
+                    }
+                }
+            }
+        }
+    }
+    let ((core_a, pre_a), (core_b, pre_b)) = (split(a), split(b));
+    parts(core_a, core_b).then_with(|| match (pre_a, pre_b) {
+        (None, None) => Ordering::Equal,
+        (None, Some(_)) => Ordering::Greater,
+        (Some(_), None) => Ordering::Less,
+        (Some(x), Some(y)) => parts(x, y),
+    })
+}
+
+/// Marks `name@version` as yanked in the index checkout at `index_dir`.
+/// Yanking is one-way and the entry is otherwise left untouched.
+pub fn yank(index_dir: &Path, name: &str, version: &str) -> Result<PathBuf> {
+    validate_component("name", name)?;
+    validate_component("version", version)?;
+    let index_file = index_dir.join(INDEX_FILE);
+    let mut index = load_index(&index_file.to_string_lossy())?;
+    let entry = index
+        .packages
+        .get_mut(name)
+        .and_then(|p| p.versions.get_mut(version))
+        .with_context(|| format!("{name}@{version} is not in {}", index_file.display()))?;
+    if entry.yanked {
+        bail!("{name}@{version} is already yanked");
+    }
+    entry.yanked = true;
+    write_index(index_dir, &index)?;
+    Ok(index_file)
+}
+
+fn write_index(index_dir: &Path, index: &Index) -> Result<()> {
+    let index_file = index_dir.join(INDEX_FILE);
+    let mut json = serde_json::to_string_pretty(index)?;
+    json.push('\n');
+    let partial = index_dir.join(".index.json.part");
+    fs::write(&partial, json).with_context(|| format!("cannot write {}", partial.display()))?;
+    fs::rename(&partial, &index_file)
+        .with_context(|| format!("cannot write {}", index_file.display()))?;
+    Ok(())
 }
 
 /// What [`publish`] recorded.
@@ -294,12 +400,7 @@ pub fn publish(
     };
     package.versions.insert(version.to_string(), entry.clone());
 
-    let mut json = serde_json::to_string_pretty(&index)?;
-    json.push('\n');
-    let partial = index_dir.join(".index.json.part");
-    fs::write(&partial, json).with_context(|| format!("cannot write {}", partial.display()))?;
-    fs::rename(&partial, &index_file)
-        .with_context(|| format!("cannot write {}", index_file.display()))?;
+    write_index(index_dir, &index)?;
     Ok(Published { index_file, entry })
 }
 
@@ -609,6 +710,86 @@ mod tests {
                 .to_string()
                 .contains("yanked")
         );
+    }
+
+    #[test]
+    fn versions_order_like_semver() {
+        let mut versions = vec![
+            "1.10.0",
+            "1.2.0",
+            "1.0.0-rc.1",
+            "1.0.0",
+            "0.9.9",
+            "1.0.0-alpha.2",
+            "1.0.0+build",
+        ];
+        versions.sort_by(|a, b| compare_versions(a, b));
+        assert_eq!(
+            versions,
+            [
+                "0.9.9",
+                "1.0.0-alpha.2",
+                "1.0.0-rc.1",
+                "1.0.0",
+                "1.0.0+build",
+                "1.2.0",
+                "1.10.0"
+            ]
+        );
+    }
+
+    #[test]
+    fn latest_skips_yanked_and_search_matches_descriptions() {
+        let entry = |yanked| VersionEntry {
+            url: "https://x".into(),
+            sha256: "00".into(),
+            size: 1,
+            yanked,
+        };
+        let mut pkg = PackageEntry {
+            description: "Handy string helpers".into(),
+            ..PackageEntry::default()
+        };
+        pkg.versions.insert("1.2.0".into(), entry(false));
+        pkg.versions.insert("1.10.0".into(), entry(true));
+        pkg.versions.insert("2.0.0-beta.1".into(), entry(false));
+        let mut index = Index::default();
+        index.packages.insert("strs".into(), pkg);
+        // 2.0.0-beta.1 > 1.2.0, and 1.10.0 is yanked.
+        assert_eq!(index.latest("strs").unwrap().0, "2.0.0-beta.1");
+        assert_eq!(index.search("STRING").len(), 1);
+        assert_eq!(index.search("str").len(), 1);
+        assert!(index.search("nothing").is_empty());
+    }
+
+    #[test]
+    fn yank_is_one_way() {
+        let dir = temp_dir("yank");
+        fs::write(dir.join("t.tar.gz"), b"x").unwrap();
+        publish(
+            &dir,
+            "p",
+            "1.0.0",
+            &dir.join("t.tar.gz"),
+            "https://x/t",
+            None,
+        )
+        .unwrap();
+        yank(&dir, "p", "1.0.0").unwrap();
+        assert!(
+            load_index(&dir.to_string_lossy())
+                .unwrap()
+                .resolve("p", "1.0.0")
+                .is_err()
+        );
+        assert!(
+            yank(&dir, "p", "1.0.0")
+                .unwrap_err()
+                .to_string()
+                .contains("already")
+        );
+        assert!(yank(&dir, "p", "9.9.9").is_err());
+        fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

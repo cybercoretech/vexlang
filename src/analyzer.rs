@@ -69,32 +69,34 @@ impl SemanticAnalyzer {
                 }
                 self.records.insert(name.clone(), fields.clone());
             }
-            if let Stmt::Function {
-                name,
-                params,
-                return_type,
-                ..
-            } = s
-            {
-                if self.functions.contains_key(name) {
-                    errors.push(format!("duplicate function `{name}`"));
-                    continue;
-                }
-                for (_, t) in params {
-                    if let Err(error) = self.check_type(t) {
+            for f in function_decls(s) {
+                if let Stmt::Function {
+                    name,
+                    params,
+                    return_type,
+                    ..
+                } = f
+                {
+                    if self.functions.contains_key(name) {
+                        errors.push(format!("duplicate function `{name}`"));
+                        continue;
+                    }
+                    for (_, t) in params {
+                        if let Err(error) = self.check_type(t) {
+                            errors.push(error);
+                        }
+                    }
+                    if let Err(error) = self.check_type(return_type) {
                         errors.push(error);
                     }
+                    self.functions.insert(
+                        name.clone(),
+                        Function {
+                            params: params.iter().map(|(_, t)| t.clone()).collect(),
+                            ret: return_type.clone(),
+                        },
+                    );
                 }
-                if let Err(error) = self.check_type(return_type) {
-                    errors.push(error);
-                }
-                self.functions.insert(
-                    name.clone(),
-                    Function {
-                        params: params.iter().map(|(_, t)| t.clone()).collect(),
-                        ret: return_type.clone(),
-                    },
-                );
             }
         }
         let mut scope = self.symbols.clone();
@@ -634,5 +636,17 @@ impl SemanticAnalyzer {
                 Ok(a)
             }
         }
+    }
+}
+
+/// Function declarations a statement introduces: a plain `fn`, the `fn` inside
+/// `test`/`bench`/`trusted`/`extern`, or the methods of an `impl`.
+pub(crate) fn function_decls(stmt: &Stmt) -> Vec<&Stmt> {
+    match stmt {
+        Stmt::Function { .. } => vec![stmt],
+        Stmt::Test(inner) | Stmt::Bench(inner) | Stmt::Trusted(inner) => function_decls(inner),
+        Stmt::Extern { func, .. } => function_decls(func),
+        Stmt::Impl { methods, .. } => methods.iter().flat_map(function_decls).collect(),
+        _ => Vec::new(),
     }
 }

@@ -67,7 +67,7 @@ values[1];
 
 The interpreter also supports enums, `ok(value)`/`err(value)` results,
 exhaustive `match` expressions, `?` propagation, small string-keyed maps
-with `map` and `map_get`, modules (`mod`), imports (`use`), exports, traits,
+with `map` and `map_get`, modules (`module`), imports (`use`), exports, traits,
 impls, contracts, and newtypes. The CLI includes a stateful REPL and a
 metadata-only `vex.toml` project reader. Generics, map mutation/iteration,
 filesystem access, floating point, `res`, and packaged
@@ -116,38 +116,55 @@ a command to emit one machine-readable diagnostic object on stderr. Exit status
 `0` means success, `1` means a source or test failure, `2` means a CLI or I/O
 error, and `3` means an explicitly unsupported target/backend operation.
 
-### 📦 Packages
+### 🧩 Modules
 
-Vex packages are listed in a **static Git index**: one `index.json` in the
-[`cybercoretech/vex-index`](https://github.com/cybercoretech/vex-index)
-repository, with tarballs hosted as release assets. There is no registry
-server, no login and no upload API. Publishing a version means opening a pull
-request against the index. The client is the
-[`vex-registry`](crates/vex-registry) workspace crate, and it is only built for
-native targets (never for the wasm32 browser build).
+`use` loads code from an inline `module NAME { ... }` block, a sibling
+`NAME.vex` file or an installed package in `vex_modules/NAME/`:
 
-```sh
-vexlang package                        # vex.toml -> dist/NAME-VERSION.tar.gz (reproducible)
-vexlang publish --index ../vex-index \
-  --url https://github.com/OWNER/REPO/releases/download/vX/NAME-VERSION.tar.gz
-                                       # records url + sha256 + size in index.json
-vexlang add NAME@VERSION [--out vendor] [--index URL|PATH]
-                                       # download + verify size and SHA-256
+```vex
+use math::square;      // math.vex next to this file
+println(square(7));
 ```
 
-- 🧾 **Integrity:** every version stores its SHA-256 and size. `add` writes
-  nothing unless both match, and writes the file atomically.
-- 🧊 **Immutability:** `publish` refuses to overwrite an existing
-  `NAME@VERSION`. Broken releases get `"yanked": true`, which `add` refuses.
-- 🔒 **HTTPS only:** published tarball URLs must be `https://`.
-- 🛑 **Names and versions** may contain only letters, digits, `.`, `_`, `-`
-  and `+`, so a package cannot write outside `--out`.
-- 🌐 **Index location:** `--index`, then `$VEX_INDEX`, then the default
-  index URL. A local checkout directory or `index.json` path works too.
-- ♻️ **Reproducible tarballs:** `package` includes `vex.toml`, top-level
-  `README*`/`LICENSE*` and every `.vex` file, skipping hidden directories,
-  `target/` and `dist/`. Entries are sorted and have fixed timestamps and
-  owners.
+Imports share one namespace for now, so a name declared twice is an error
+that names both places. Modules may only contain declarations, so importing
+never runs code. `export` limits what `use mod::item` may name. Full rules
+and error codes: [`docs/src/packages.md`](docs/src/packages.md).
+
+### 📦 Packages
+
+Vex packages are listed in a **static Git index**, one `index.json` in
+[`cybercoretech/vex-index`](https://github.com/cybercoretech/vex-index), with
+tarballs hosted as release assets. There is no registry server and no login.
+Publishing a version means opening a pull request against the index. The
+client is the [`vex-registry`](crates/vex-registry) workspace crate, and it is
+only built for native targets.
+
+```sh
+vexlang new app && cd app        # or: vexlang new mylib --lib
+vexlang add greeter              # latest version -> vex.toml, vex.lock, vex_modules/
+vexlang install --locked         # CI: reproduce exactly what vex.lock pins
+vexlang remove greeter
+vexlang search greet | vexlang info greeter
+
+vexlang package                  # vex.toml -> dist/NAME-VERSION.tar.gz (reproducible)
+vexlang publish --index ../vex-index --url https://.../NAME-VERSION.tar.gz
+vexlang yank NAME@VERSION --index ../vex-index
+```
+
+- 🔗 **Dependencies:** listed under `[dependencies]` in `vex.toml` with exact
+  versions and resolved transitively. Two versions of one package are a
+  conflict. `vex.lock` pins every URL and hash, and `--offline` installs from
+  the lock and the download cache.
+- 🧾 **Integrity:** every tarball's size and SHA-256 are verified before
+  anything is unpacked. Archives with paths outside the package, links or
+  special files are refused, and installs are staged and then renamed.
+- 🧊 **Immutability:** published versions can't be overwritten. Yanked
+  versions are skipped by `add` but stay installable from an existing lock.
+- 🔒 **HTTPS-only** tarball URLs. 🛑 **Validated names and versions**
+  (letters, digits, `.`, `_`, `-`, `+`).
+- 🌐 **Index location:** `--index`, then `$VEX_INDEX`, then the vex-index
+  raw URL. A local checkout directory or an `index.json` path works too.
 
 ### ⚠️ Usage warnings
 
@@ -186,7 +203,7 @@ VEX
 │   ├── ✅ user-defined record types
 │   ├── ✅ typed arrays and indexing
 │   ├── ✅ interpreter enums, Result propagation, and scoped maps
-│   ├── ✅ modules (`mod`), imports (`use`), exports, traits, impls, contracts, and newtypes
+│   ├── ✅ modules (`module`), imports (`use`), exports, traits, impls, contracts, and newtypes
 │   └── ⏳ generics and project/package management
 ├── 🚧 Milestone 12 Production diagnostics
 │   ├── ✅ initial machine-readable JSON diagnostics
