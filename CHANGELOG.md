@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed keyword matching. Keywords matched as prefixes, so identifiers such as
+  `letter`, `user`, `tests`, `owner` or `returned` were parse errors, and a
+  keyword could be split off a longer word (`letx` read as `let x`). Every
+  keyword, the syntax words `match`/`for` and the built-in type names now
+  match only as whole words. Reserved words themselves (`let`, `fallback`,
+  ...) are still rejected as names.
 - `use` now loads code. It imports declarations from an inline
   `module NAME { ... }` block, a sibling `NAME.vex` file or an installed
   package (`vex_modules/NAME/`, entry from its `vex.toml` `lib`). Imports share

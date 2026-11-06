@@ -817,6 +817,43 @@ mod tests {
     }
 
     #[test]
+    fn identifiers_may_start_with_keywords() {
+        // Regression: keywords matched as prefixes, so `letter` (let), `user`
+        // (use), `tests` (test) or `returned` (return) were parse errors.
+        for (source, expected) in [
+            ("let letter = 1; letter;", 1),
+            ("let user = 2; user;", 2),
+            ("let tests = 3; tests;", 3),
+            ("let owner = 4; let hotel = owner; hotel;", 4),
+            ("fn returned() -> i32 { 5 } returned();", 5),
+            ("fn matches(x: i32) -> i32 { x } matches(6);", 6),
+            ("let iffy = 7; let elsewhere = iffy; elsewhere;", 7),
+            (
+                "record trueColor { r: i32 } let c = trueColor { r: 8 }; c.r;",
+                8,
+            ),
+        ] {
+            assert_eq!(run(source), Ok(Value::Int(expected)), "{source}");
+        }
+        // Whole-word keywords stay reserved, and a keyword prefix is not
+        // split off a longer word (`letx` is a name, not `let x`).
+        assert!(run("let let = 1;").is_err());
+        assert!(run("let fallback = 1;").is_err());
+        assert!(
+            run("letx = 1;")
+                .unwrap_err()
+                .message
+                .contains("undefined variable `letx`")
+        );
+        assert!(
+            run("let b: boolean = true;")
+                .unwrap_err()
+                .message
+                .contains("boolean")
+        );
+    }
+
+    #[test]
     fn functions_inside_test_bench_trusted_extern_and_impl_are_callable() {
         // Regression: these wrappers used to fail to parse (`unsupported
         // statement ident`) and their functions were never registered.
