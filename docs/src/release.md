@@ -1,6 +1,6 @@
 # Public alpha release guide
 
-Vex `0.1.0-alpha.1` is an interpreter and typed textual-IR prototype with an
+Vex `0.1.0-alpha.2` is an interpreter and typed textual-IR prototype with an
 experimental scalar QBE IL emitter. A release publishes the Cargo source
 package; it does **not** publish a native binary or claim production compiler
 support.
@@ -16,14 +16,19 @@ textual-IR scope. Maps and generics remain intentionally deferred.
    naming, documentation references, and package inclusion.
 3. Run the complete [quality gate](development.md), including Rust 1.85.0 and
    `mdbook test docs`.
-4. Run `./scripts/release-artifacts.sh dist`.
+4. Run `./scripts/release-artifacts.sh dist`. It writes both `.crate` files
+   and their checksums.
 5. Verify the checksum from the artifact directory with
-   `cd dist && sha256sum --check vexlang-<version>.crate.sha256`.
+   `cd dist && sha256sum --check *.crate.sha256`.
 6. Inspect the archive with `tar tf` and confirm it contains source and docs,
    not a fabricated native executable.
-7. Create the matching annotated Git tag and publish the crate artifact and
-   checksum from `dist/`.
-8. Record the tag, artifact checksum, and validation results in the release
+7. Dry-run the crates.io upload: `cargo publish --workspace --dry-run`. This
+   packages and builds both `vexlang-registry` and `vexlang` from their
+   tarballs.
+8. Create the matching annotated Git tag, run `cargo publish --workspace`
+   (it publishes `vexlang-registry` first, then `vexlang`), and attach the
+   `.crate` files and checksums from `dist/` to the GitHub release.
+9. Record the tag, artifact checksums, and validation results in the release
    notes.
 
 The tag workflow repeats the metadata check and package smoke test. Artifact

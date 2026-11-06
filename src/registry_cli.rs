@@ -1,14 +1,14 @@
-//! Package commands on top of `vex_registry`:
+//! Package commands on top of `vexlang_registry`:
 //! `new | package | publish | yank | add | remove | install | fetch | search | info`.
 //!
 //! Packages live in a static Git index (no server, no login). See the
-//! `vex_registry` crate docs for the index and lockfile formats.
+//! `vexlang_registry` crate docs for the index and lockfile formats.
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use vex_registry::install::{InstallOptions, InstallReport};
+use vexlang_registry::install::{InstallOptions, InstallReport};
 
 pub const USAGE: &str = "packages:\n\
        vexlang new NAME [--lib]                         create a project (or library) skeleton\n\
@@ -127,7 +127,7 @@ impl Flags {
     fn index(&self) -> String {
         self.get("--index")
             .map(str::to_string)
-            .unwrap_or_else(vex_registry::default_index)
+            .unwrap_or_else(vexlang_registry::default_index)
     }
 }
 
@@ -174,7 +174,7 @@ fn read_deps(text: &str) -> anyhow::Result<BTreeMap<String, String>> {
 }
 
 fn run_install(manifest: &Manifest, index: &str, options: InstallOptions) -> CliResult {
-    let report = vex_registry::install::install(
+    let report = vexlang_registry::install::install(
         &manifest.dir,
         &manifest.config.dependencies,
         index,
@@ -209,7 +209,7 @@ const GITIGNORE: &str = "vex_modules/\ndist/\n";
 fn new(rest: &[String]) -> CliResult {
     let flags = Flags::parse(rest, &[], &["--lib"])?;
     let name = flags.positional("NAME", "new")?;
-    vex_registry::validate_component("name", name)?;
+    vexlang_registry::validate_component("name", name)?;
     let dir = PathBuf::from(name);
     if dir.exists() {
         return Err(failed(format!("`{name}` already exists")));
@@ -267,7 +267,7 @@ fn package(rest: &[String]) -> CliResult {
         .map(PathBuf::from)
         .unwrap_or_else(|| m.dir.join("dist"));
     let (tarball, files) =
-        vex_registry::package(&m.dir, &m.path, &m.config.name, &m.config.version, &out)?;
+        vexlang_registry::package(&m.dir, &m.path, &m.config.name, &m.config.version, &out)?;
     for file in &files {
         println!("  {}", file.display());
     }
@@ -276,7 +276,7 @@ fn package(rest: &[String]) -> CliResult {
         m.config.name,
         m.config.version,
         tarball.display(),
-        vex_registry::sha256_file(&tarball)?
+        vexlang_registry::sha256_file(&tarball)?
     );
     Ok(())
 }
@@ -296,7 +296,7 @@ fn publish(rest: &[String]) -> CliResult {
             .get("--description")
             .or(m.config.description.as_deref().filter(|d| !d.is_empty()));
 
-    let published = vex_registry::publish(
+    let published = vexlang_registry::publish(
         &index_dir,
         &m.config.name,
         &m.config.version,
@@ -325,7 +325,7 @@ fn yank(rest: &[String]) -> CliResult {
     let flags = Flags::parse(rest, &["--index"], &[])?;
     let (name, version) = split_spec(flags.positional("NAME@VERSION", "yank")?, "yank")?;
     let index_dir = PathBuf::from(flags.require("--index", "yank")?);
-    let file = vex_registry::yank(&index_dir, name, version)?;
+    let file = vexlang_registry::yank(&index_dir, name, version)?;
     println!("yanked {name}@{version} in {}", file.display());
     println!("next: commit index.json and open a pull request");
     Ok(())
@@ -339,13 +339,13 @@ fn add(rest: &[String]) -> CliResult {
     let (name, version) = match spec.split_once('@') {
         Some((name, version)) => (name.to_string(), version.to_string()),
         None => {
-            let index = vex_registry::load_index(&index_location)?;
+            let index = vexlang_registry::load_index(&index_location)?;
             let (version, _) = index.latest(spec)?;
             (spec.to_string(), version.to_string())
         }
     };
-    vex_registry::validate_component("name", &name)?;
-    vex_registry::validate_component("version", &version)?;
+    vexlang_registry::validate_component("name", &name)?;
+    vexlang_registry::validate_component("version", &version)?;
     if name == m.config.name {
         return Err(failed(format!(
             "a project cannot depend on itself (`{name}`)"
@@ -403,8 +403,8 @@ fn fetch(rest: &[String]) -> CliResult {
     let flags = Flags::parse(rest, &["--out", "--index"], &[])?;
     let (name, version) = split_spec(flags.positional("NAME@VERSION", "fetch")?, "fetch")?;
     let out = PathBuf::from(flags.get("--out").unwrap_or("."));
-    let index = vex_registry::load_index(&flags.index())?;
-    let dest = vex_registry::add(&index, name, version, &out)?;
+    let index = vexlang_registry::load_index(&flags.index())?;
+    let dest = vexlang_registry::add(&index, name, version, &out)?;
     println!(
         "fetched {name}@{version} -> {} (sha256 verified)",
         dest.display()
@@ -414,7 +414,7 @@ fn fetch(rest: &[String]) -> CliResult {
 
 fn search(rest: &[String]) -> CliResult {
     let flags = Flags::parse(rest, &["--index"], &[])?;
-    let index = vex_registry::load_index(&flags.index())?;
+    let index = vexlang_registry::load_index(&flags.index())?;
     let term = flags.positional.as_deref().unwrap_or("");
     let hits = index.search(term);
     if hits.is_empty() {
@@ -433,7 +433,7 @@ fn search(rest: &[String]) -> CliResult {
 fn info(rest: &[String]) -> CliResult {
     let flags = Flags::parse(rest, &["--index"], &[])?;
     let name = flags.positional("NAME", "info")?;
-    let index = vex_registry::load_index(&flags.index())?;
+    let index = vexlang_registry::load_index(&flags.index())?;
     let entry = index
         .packages
         .get(name)
@@ -443,7 +443,7 @@ fn info(rest: &[String]) -> CliResult {
         println!("  {}", entry.description);
     }
     let mut versions: Vec<_> = entry.versions.iter().collect();
-    versions.sort_by(|a, b| vex_registry::compare_versions(b.0, a.0));
+    versions.sort_by(|a, b| vexlang_registry::compare_versions(b.0, a.0));
     for (version, v) in versions {
         println!(
             "  {version}{}  {} bytes  sha256 {}",

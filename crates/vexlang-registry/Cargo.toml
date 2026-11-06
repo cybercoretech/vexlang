@@ -1,10 +1,14 @@
 [package]
-name = "vex-registry"
+name = "vexlang-registry"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
-description = "Static package index client used by the vexlang CLI (package, publish, add)"
+description = "Package index client for the Vex language: index lookup, verified installs, vex.lock, reproducible packaging"
+readme = "README.md"
+keywords = ["vex", "package-manager", "lockfile", "registry"]
+categories = ["development-tools"]
+include = ["/src/**", "/README.md", "/LICENSE"]
 repository = "https://github.com/cybercoretech/vexlang"
 homepage = "https://github.com/cybercoretech/vexlang"
 

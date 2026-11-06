@@ -43,7 +43,7 @@ STATUS_LABEL = {
 }
 
 STATUS_DETAIL = {
-    "live": "Parses, builds and evaluates in 0.1.0-alpha.1",
+    "live": "Parses, builds and evaluates in 0.1.0-alpha.2",
     "reserved-rule": "Has a grammar rule; the builder rejects it today",
     "reserved-word": "Reserved identifier in the grammar; no syntax yet",
     "proposed": "Proposal only; not reserved in the grammar",
@@ -334,7 +334,7 @@ def render(data: dict) -> str:
     <div class="stat reserved"><b>{counts['reserved']}</b><span>reserved</span></div>
     <div class="stat proposed"><b>{counts['proposed']}</b><span>proposed</span></div>
   </div>
-  <p class="kw-note"><b>READ THIS FIRST.</b> This page documents a design proposal, not the shipped language. <b class="s-live">LIVE</b> constructs parse, build and evaluate in <code>0.1.0-alpha.1</code>. <b class="s-reserved">RESERVED</b> words have grammar rules but are rejected by the builder. <b class="s-proposed">PROPOSED</b> constructs are reserved words or design ideas with no implementation yet.</p>
+  <p class="kw-note"><b>READ THIS FIRST.</b> This page documents a design proposal, not the shipped language. <b class="s-live">LIVE</b> constructs parse, build and evaluate in <code>0.1.0-alpha.2</code>. <b class="s-reserved">RESERVED</b> words have grammar rules but are rejected by the builder. <b class="s-proposed">PROPOSED</b> constructs are reserved words or design ideas with no implementation yet.</p>
 </section>
 
 <section class="shell kw-tools" aria-label="Filter keywords">
@@ -386,7 +386,7 @@ def render(data: dict) -> str:
     <a href="https://github.com/cybercoretech/vexlang">GitHub ↗</a>
     <a href="docs/index.html">Docs ↗</a>
     <a data-cybercore-master-docs href="https://cybercoretech.github.io/cybercore/docs.html">Master docs ↗</a>
-    <span>MIT · 0.1.0-alpha.1</span>
+    <span>MIT · 0.1.0-alpha.2</span>
   </div>
 </footer>
 
