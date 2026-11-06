@@ -12,6 +12,7 @@ mod codegen;
 mod diagnostics;
 mod evaluator;
 mod ir;
+mod modules;
 mod parser;
 mod project;
 #[cfg(not(target_arch = "wasm32"))]
@@ -149,15 +150,31 @@ fn pipeline(source: &str) -> Result<Vec<ast::Stmt>, Diagnostic> {
         Diagnostic::new("E1002", message.clone(), span_for(source, needle))
     })?;
     let declarations = declaration_spans(source, &spanned_stmts);
-    let stmts = spanned_stmts
-        .into_iter()
-        .map(|spanned| spanned.stmt)
-        .collect::<Vec<_>>();
+    let stmts = with_imports(
+        spanned_stmts
+            .into_iter()
+            .map(|spanned| spanned.stmt)
+            .collect::<Vec<_>>(),
+        source,
+    )?;
     let mut analyzer = SemanticAnalyzer::new();
     analyzer
         .analyze(&stmts)
         .map_err(|error| semantic_diagnostic(error, source, &declarations))?;
     Ok(stmts)
+}
+
+/// Prepends the declarations that the program's `use` statements import.
+/// The resolved `use` statements are dropped: their declarations are now part
+/// of the program, so backends never see a `use` they cannot express.
+fn with_imports(stmts: Vec<ast::Stmt>, source: &str) -> Result<Vec<ast::Stmt>, Diagnostic> {
+    let mut program = modules::resolve(&stmts, source)?;
+    program.extend(
+        stmts
+            .into_iter()
+            .filter(|stmt| !matches!(stmt, ast::Stmt::Use { .. })),
+    );
+    Ok(program)
 }
 
 fn pipeline_all(source: &str) -> Result<Vec<ast::Stmt>, Vec<Diagnostic>> {
@@ -182,10 +199,14 @@ fn pipeline_all(source: &str) -> Result<Vec<ast::Stmt>, Vec<Diagnostic>> {
         )]
     })?;
     let declarations = declaration_spans(source, &spanned_stmts);
-    let stmts = spanned_stmts
-        .into_iter()
-        .map(|spanned| spanned.stmt)
-        .collect::<Vec<_>>();
+    let stmts = with_imports(
+        spanned_stmts
+            .into_iter()
+            .map(|spanned| spanned.stmt)
+            .collect::<Vec<_>>(),
+        source,
+    )
+    .map_err(|error| vec![error])?;
     let mut analyzer = SemanticAnalyzer::new();
     let errors = analyzer.analyze_all(&stmts);
     if errors.is_empty() {
@@ -505,6 +526,7 @@ fn main() {
     };
 
     if command == "repl" {
+        modules::set_context(modules::ModuleContext::for_path(None));
         repl();
         return;
     }
@@ -519,6 +541,7 @@ fn main() {
         return;
     }
 
+    modules::set_context(modules::ModuleContext::for_path(path));
     let source = match read_source(path) {
         Ok(source) => source,
         Err(error) => {
@@ -791,6 +814,35 @@ mod tests {
         let error = run("let value = 1;\nvalue + ;").unwrap_err();
         assert!(error.contains("parse error"));
         assert!(error.contains("2:"));
+    }
+
+    #[test]
+    fn functions_inside_test_bench_trusted_extern_and_impl_are_callable() {
+        // Regression: these wrappers used to fail to parse (`unsupported
+        // statement ident`) and their functions were never registered.
+        assert_eq!(run("test fn t() -> i32 { 0 } 1;"), Ok(Value::Int(1)));
+        assert_eq!(run("bench fn b() -> i32 { 0 } b();"), Ok(Value::Int(0)));
+        assert_eq!(run("trusted fn t() -> i32 { 2 } t();"), Ok(Value::Int(2)));
+        assert_eq!(
+            run(r#"extern "C" fn e() -> i32 { 3 } e();"#),
+            Ok(Value::Int(3))
+        );
+        assert_eq!(
+            run("record P { x: i32 } impl P { fn get() -> i32 { 4 } } get();"),
+            Ok(Value::Int(4))
+        );
+        assert_eq!(
+            run(
+                "trait Show { fn show() -> i32; } record P { x: i32 } impl Show for P { fn show() -> i32 { 5 } } show();"
+            ),
+            Ok(Value::Int(5))
+        );
+        assert!(
+            run("fn a() -> i32 { 1 } trusted fn a() -> i32 { 2 } 1;")
+                .unwrap_err()
+                .message
+                .contains("duplicate function `a`")
+        );
     }
 
     #[test]
