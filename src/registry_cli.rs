@@ -1,27 +1,23 @@
-//! `vexlang login | publish | add`: argument parsing on top of `vex_registry`.
+//! `vexlang package | publish | add`: argument parsing on top of `vex_registry`.
 //!
-//! Secrets are never required on the command line: passwords come from
-//! `--password-stdin` or `VEX_REGISTRY_PASSWORD`, API keys from `--key`,
-//! `--key-stdin` or `VEX_REGISTRY_TOKEN`.
+//! Packages live in a static Git index (no server, no login). See the
+//! `vex_registry` crate docs for the index format.
 
-use std::io::BufRead;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-pub const PASSWORD_ENV: &str = "VEX_REGISTRY_PASSWORD";
-pub const TOKEN_ENV: &str = "VEX_REGISTRY_TOKEN";
+pub const USAGE: &str = "packages:\n\
+       vexlang package [vex.toml] [--out DIR]           build dist/NAME-VERSION.tar.gz\n\
+       vexlang publish [vex.toml] --index DIR --url URL [--file TARBALL] [--description TEXT]\n\
+                                                       record the version in an index checkout\n\
+       vexlang add NAME@VERSION [--out DIR] [--index URL|PATH]\n\
+                                                       download and verify a package\n\
+       (index defaults to $VEX_INDEX, then the cybercoretech/vex-index repository)";
 
-pub const USAGE: &str = "registry:\n\
-       vexlang login --email EMAIL (--password-stdin | env VEX_REGISTRY_PASSWORD) [--registry URL]\n\
-       vexlang login (--key KEY | --key-stdin | env VEX_REGISTRY_TOKEN) [--registry URL]\n\
-       vexlang publish --name NAME --version VER --file FILE.tar.gz [--description TEXT]\n\
-       vexlang add --name NAME --version VER [--out DIR] [--registry URL]\n\
-       (registry defaults to $VEX_REGISTRY, then http://localhost:3001)";
-
-/// Runs a registry subcommand. Returns `None` if `command` is not one, so the
+/// Runs a package subcommand. Returns `None` if `command` is not one, so the
 /// caller can fall through to the language commands.
 pub fn run(command: &str, rest: &[String]) -> Option<i32> {
     let result = match command {
-        "login" => login(rest),
+        "package" => package(rest),
         "publish" => publish(rest),
         "add" => add(rest),
         _ => return None,
@@ -52,17 +48,17 @@ impl From<anyhow::Error> for CliError {
 
 type CliResult = Result<(), CliError>;
 
-/// Parsed `--flag value` / `--switch` arguments.
+/// Parsed `--flag value` pairs plus at most one positional argument.
 struct Flags {
     values: Vec<(String, String)>,
-    switches: Vec<String>,
+    positional: Option<String>,
 }
 
 impl Flags {
-    fn parse(rest: &[String], valued: &[&str], switches: &[&str]) -> Result<Self, CliError> {
+    fn parse(rest: &[String], valued: &[&str]) -> Result<Self, CliError> {
         let mut flags = Flags {
             values: Vec::new(),
-            switches: Vec::new(),
+            positional: None,
         };
         let mut iter = rest.iter();
         while let Some(arg) = iter.next() {
@@ -71,16 +67,10 @@ impl Flags {
                     .next()
                     .ok_or_else(|| CliError::Usage(format!("{arg} needs a value")))?;
                 flags.values.push((arg.clone(), value.clone()));
-            } else if switches.contains(&arg.as_str()) {
-                flags.switches.push(arg.clone());
-            } else if arg == "--password" {
-                return Err(CliError::Usage(
-                    "--password is not accepted (it leaks into shell history); \
-                     use --password-stdin or VEX_REGISTRY_PASSWORD"
-                        .into(),
-                ));
-            } else {
+            } else if arg.starts_with("--") || flags.positional.is_some() {
                 return Err(CliError::Usage(format!("unexpected argument `{arg}`")));
+            } else {
+                flags.positional = Some(arg.clone());
             }
         }
         Ok(flags)
@@ -98,122 +88,98 @@ impl Flags {
         self.get(name)
             .ok_or_else(|| CliError::Usage(format!("{command} requires {name}")))
     }
+}
 
-    fn has(&self, name: &str) -> bool {
-        self.switches.iter().any(|s| s == name)
+/// Loads `vex.toml` (or the given manifest) and returns it with its directory.
+fn manifest(flags: &Flags) -> Result<(PathBuf, PathBuf, crate::project::ProjectConfig), CliError> {
+    let manifest = PathBuf::from(flags.positional.as_deref().unwrap_or("vex.toml"));
+    let config =
+        crate::project::load(&manifest).map_err(|e| CliError::Failed(anyhow::anyhow!(e)))?;
+    let dir = manifest
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."))
+        .to_path_buf();
+    Ok((manifest, dir, config))
+}
+
+fn package(rest: &[String]) -> CliResult {
+    let flags = Flags::parse(rest, &["--out"])?;
+    let (manifest, dir, config) = manifest(&flags)?;
+    let out = flags
+        .get("--out")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| dir.join("dist"));
+    let (tarball, files) =
+        vex_registry::package(&dir, &manifest, &config.name, &config.version, &out)?;
+    for file in &files {
+        println!("  {}", file.display());
     }
-}
-
-fn read_stdin_line(what: &str) -> Result<String, CliError> {
-    let mut line = String::new();
-    std::io::stdin()
-        .lock()
-        .read_line(&mut line)
-        .map_err(|e| CliError::Failed(anyhow::anyhow!("cannot read {what} from stdin: {e}")))?;
-    let line = line.trim_end_matches(['\r', '\n']).to_string();
-    if line.is_empty() {
-        return Err(CliError::Usage(format!("no {what} on stdin")));
-    }
-    Ok(line)
-}
-
-fn env_secret(name: &str) -> Option<String> {
-    std::env::var(name).ok().filter(|v| !v.is_empty())
-}
-
-fn registry_flag(flags: &Flags) -> String {
-    flags
-        .get("--registry")
-        .map(str::to_string)
-        .unwrap_or_else(vex_registry::default_registry)
-}
-
-fn login(rest: &[String]) -> CliResult {
-    let flags = Flags::parse(
-        rest,
-        &["--registry", "--email", "--key"],
-        &["--password-stdin", "--key-stdin"],
-    )?;
-    let registry = registry_flag(&flags);
-
-    let creds = if let Some(email) = flags.get("--email") {
-        if flags.get("--key").is_some() || flags.has("--key-stdin") {
-            return Err(CliError::Usage(
-                "use either --email or an API key, not both".into(),
-            ));
-        }
-        let password = if flags.has("--password-stdin") {
-            read_stdin_line("password")?
-        } else {
-            env_secret(PASSWORD_ENV).ok_or_else(|| {
-                CliError::Usage(format!(
-                    "login --email needs --password-stdin or {PASSWORD_ENV}"
-                ))
-            })?
-        };
-        vex_registry::login(&registry, email, &password)?
-    } else {
-        let key = if let Some(key) = flags.get("--key") {
-            key.to_string()
-        } else if flags.has("--key-stdin") {
-            read_stdin_line("API key")?
-        } else {
-            env_secret(TOKEN_ENV).ok_or_else(|| {
-                CliError::Usage(format!(
-                    "login requires --email, --key, --key-stdin or {TOKEN_ENV}"
-                ))
-            })?
-        };
-        vex_registry::login_api_key(&registry, &key)?
-    };
     println!(
-        "logged in to {} (credentials in {})",
-        creds.registry,
-        vex_registry::credentials_path().display()
+        "packaged {}@{} -> {} (sha256 {})",
+        config.name,
+        config.version,
+        tarball.display(),
+        vex_registry::sha256_file(&tarball)?
     );
     Ok(())
 }
 
 fn publish(rest: &[String]) -> CliResult {
-    let flags = Flags::parse(
-        rest,
-        &["--name", "--version", "--file", "--description"],
-        &[],
-    )?;
-    let name = flags.require("--name", "publish")?;
-    let version = flags.require("--version", "publish")?;
-    let file = PathBuf::from(flags.require("--file", "publish")?);
-    let description = flags.get("--description").unwrap_or("");
+    let flags = Flags::parse(rest, &["--index", "--url", "--file", "--description"])?;
+    let (_, dir, config) = manifest(&flags)?;
+    let index_dir = PathBuf::from(flags.require("--index", "publish")?);
+    let url = flags.require("--url", "publish")?;
+    let tarball = flags.get("--file").map(PathBuf::from).unwrap_or_else(|| {
+        dir.join("dist")
+            .join(format!("{}-{}.tar.gz", config.name, config.version))
+    });
 
-    let creds = vex_registry::load_credentials()?;
-    vex_registry::ensure_package(&creds, name, description)?;
-    let resp = vex_registry::publish_tarball(&creds, name, version, &file)?;
+    let published = vex_registry::publish(
+        &index_dir,
+        &config.name,
+        &config.version,
+        &tarball,
+        url,
+        flags.get("--description"),
+    )?;
     println!(
-        "published {}@{} to {} ({}, {} bytes)",
-        resp.package, resp.version, creds.registry, resp.checksum, resp.size
+        "recorded {}@{} in {} (sha256 {}, {} bytes)",
+        config.name,
+        config.version,
+        published.index_file.display(),
+        published.entry.sha256,
+        published.entry.size
+    );
+    println!("next:");
+    println!("  1. upload {} so it is served at {url}", tarball.display());
+    println!(
+        "  2. commit index.json in {} and open a pull request",
+        index_dir.display()
     );
     Ok(())
 }
 
 fn add(rest: &[String]) -> CliResult {
-    let flags = Flags::parse(rest, &["--name", "--version", "--out", "--registry"], &[])?;
-    let name = flags.require("--name", "add")?;
-    let version = flags.require("--version", "add")?;
+    let flags = Flags::parse(rest, &["--out", "--index"])?;
+    let spec = flags
+        .positional
+        .as_deref()
+        .ok_or_else(|| CliError::Usage("add requires NAME@VERSION".into()))?;
+    let (name, version) = spec
+        .split_once('@')
+        .ok_or_else(|| CliError::Usage(format!("expected NAME@VERSION, got `{spec}`")))?;
     let out = PathBuf::from(flags.get("--out").unwrap_or("."));
+    let location = flags
+        .get("--index")
+        .map(str::to_string)
+        .unwrap_or_else(vex_registry::default_index);
 
-    // Saved credentials are only sent to the registry they belong to.
-    let saved = vex_registry::load_credentials().ok();
-    let registry = match (flags.get("--registry"), &saved) {
-        (Some(url), _) => vex_registry::normalize_registry(url)?,
-        (None, Some(creds)) => creds.registry.clone(),
-        (None, None) => vex_registry::normalize_registry(&vex_registry::default_registry())?,
-    };
-    let token = saved
-        .as_ref()
-        .filter(|creds| creds.registry == registry)
-        .map(|creds| creds.token.as_str());
-
-    let dest = vex_registry::download_package(&registry, token, name, version, &out)?;
-    println!("downloaded {name}@{version} to {}", dest.display());
+    let index = vex_registry::load_index(&location)?;
+    let dest = vex_registry::add(&index, name, version, &out)?;
+    println!(
+        "added {name}@{version} -> {} (sha256 verified)",
+        dest.display()
+    );
     Ok(())
 }

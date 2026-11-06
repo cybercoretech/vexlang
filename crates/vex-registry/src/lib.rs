@@ -1,72 +1,97 @@
-//! Client for the Vex package registry.
+//! Client for the Vex static package index.
 //!
-//! This crate is the single implementation behind `vexlang login`,
-//! `vexlang publish` and `vexlang add`. It talks to the registry's HTTP API,
-//! stores credentials in the user's config directory and downloads package
-//! tarballs. It uses blocking I/O and is never built for `wasm32`.
+//! There is no registry server. The index is one JSON file in a Git
+//! repository, and package tarballs are hosted elsewhere (normally GitHub
+//! release assets). Each version entry records the tarball URL, SHA-256 and
+//! size:
+//!
+//! ```json
+//! { "schema": 1,
+//!   "packages": { "mypkg": { "description": "…",
+//!     "versions": { "0.1.0": { "url": "https://…/mypkg-0.1.0.tar.gz",
+//!                              "sha256": "…", "size": 1234 } } } } }
+//! ```
+//!
+//! - `package` builds a reproducible `NAME-VERSION.tar.gz` from a project.
+//! - `publish` adds a version to a local checkout of the index, which then
+//!   goes up as a pull request. Published versions are immutable.
+//! - `add` resolves a version from the index, downloads it and verifies it.
+//!
+//! This crate is native-only (blocking I/O); the vexlang wasm32 build never
+//! links it.
 
 use anyhow::{Context, Result, bail};
-use reqwest::StatusCode;
-use reqwest::blocking::{Client, multipart};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use std::fs;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-/// Registry used when neither `--registry` nor `VEX_REGISTRY` is given.
-pub const DEFAULT_REGISTRY: &str = "http://localhost:3001";
+/// Index used when neither `--index` nor `VEX_INDEX` is given.
+pub const DEFAULT_INDEX: &str =
+    "https://raw.githubusercontent.com/cybercoretech/vex-index/main/index.json";
 
-/// Environment variable that overrides [`DEFAULT_REGISTRY`].
-pub const REGISTRY_ENV: &str = "VEX_REGISTRY";
+/// Environment variable that overrides [`DEFAULT_INDEX`].
+pub const INDEX_ENV: &str = "VEX_INDEX";
 
-/// Environment variable that overrides where credentials are stored.
-pub const CREDENTIALS_ENV: &str = "VEX_CREDENTIALS";
+/// File name of the index inside an index checkout.
+pub const INDEX_FILE: &str = "index.json";
 
-/// Saved login for one registry.
+/// Current index format.
+pub const SCHEMA: u32 = 1;
+
+/// Largest tarball `add` will download or `publish` will register.
+pub const MAX_TARBALL_BYTES: u64 = 64 * 1024 * 1024;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Credentials {
-    pub registry: String,
-    /// Access token from a password login, or an API key.
-    pub token: String,
+pub struct Index {
+    pub schema: u32,
+    #[serde(default)]
+    pub packages: BTreeMap<String, PackageEntry>,
 }
 
-#[derive(Debug, Deserialize)]
-struct AuthResponse {
-    access_token: String,
+impl Default for Index {
+    fn default() -> Self {
+        Index {
+            schema: SCHEMA,
+            packages: BTreeMap::new(),
+        }
+    }
 }
 
-/// Registry reply to a successful upload.
-#[derive(Debug, Deserialize)]
-pub struct PublishUploadResponse {
-    pub package: String,
-    pub version: String,
-    pub checksum: String,
-    pub size: i64,
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PackageEntry {
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub versions: BTreeMap<String, VersionEntry>,
 }
 
-/// Registry URL from `VEX_REGISTRY`, falling back to [`DEFAULT_REGISTRY`].
-pub fn default_registry() -> String {
-    std::env::var(REGISTRY_ENV)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionEntry {
+    pub url: String,
+    /// Lowercase hex SHA-256 of the tarball.
+    pub sha256: String,
+    pub size: u64,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub yanked: bool,
+}
+
+/// Index location from `VEX_INDEX`, falling back to [`DEFAULT_INDEX`].
+pub fn default_index() -> String {
+    std::env::var(INDEX_ENV)
         .ok()
         .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string())
+        .unwrap_or_else(|| DEFAULT_INDEX.to_string())
 }
 
-/// Strips trailing slashes and rejects anything that is not an http(s) URL.
-pub fn normalize_registry(registry: &str) -> Result<String> {
-    let base = registry.trim().trim_end_matches('/');
-    if !(base.starts_with("http://") || base.starts_with("https://")) {
-        bail!("registry must be an http:// or https:// URL, got `{registry}`");
-    }
-    Ok(base.to_string())
-}
-
-/// Checks a package name or version before it is put into a URL or file name.
+/// Checks a package name or version before it is used in a URL or file name.
 ///
 /// Allowed: ASCII letters, digits, `.`, `_`, `-` and `+`, not starting with
 /// `.` or `-`, at most 128 characters. This rules out path traversal such as
-/// `../x` when `add` writes `NAME-VERSION.tar.gz`.
+/// `../x` when a tarball is written as `NAME-VERSION.tar.gz`.
 pub fn validate_component(kind: &str, value: &str) -> Result<()> {
     let ok_char = |c: char| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '+');
     if value.is_empty()
@@ -82,181 +107,124 @@ pub fn validate_component(kind: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-/// Where credentials live: `VEX_CREDENTIALS`, else
-/// `<config dir>/vex/credentials.toml`.
-pub fn credentials_path() -> PathBuf {
-    if let Some(path) = std::env::var_os(CREDENTIALS_ENV).filter(|p| !p.is_empty()) {
-        return PathBuf::from(path);
-    }
-    dirs::config_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("vex")
-        .join("credentials.toml")
+/// Lowercase hex SHA-256 of a byte slice.
+pub fn sha256_hex(data: &[u8]) -> String {
+    hex::encode(Sha256::digest(data))
 }
 
-pub fn load_credentials_from(path: &Path) -> Result<Credentials> {
-    let data = fs::read_to_string(path).with_context(|| {
-        format!(
-            "not logged in (run `vexlang login`): cannot read {}",
-            path.display()
-        )
-    })?;
-    toml::from_str(&data).with_context(|| format!("malformed credentials in {}", path.display()))
+pub fn sha256_file(path: &Path) -> Result<String> {
+    let data = fs::read(path).with_context(|| format!("cannot read {}", path.display()))?;
+    Ok(sha256_hex(&data))
 }
 
-pub fn load_credentials() -> Result<Credentials> {
-    load_credentials_from(&credentials_path())
-}
-
-/// Writes credentials, readable only by the owner on Unix.
-pub fn save_credentials_to(path: &Path, creds: &Credentials) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("cannot create {}", parent.display()))?;
-    }
-    let body = toml::to_string_pretty(creds)?;
-    #[cfg(unix)]
-    {
-        use std::io::Write;
-        use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
-        // Create with 0600 so the token is never world-readable, even briefly.
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(path)
-            .with_context(|| format!("cannot write {}", path.display()))?;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
-        file.write_all(body.as_bytes())?;
-    }
-    #[cfg(not(unix))]
-    fs::write(path, body).with_context(|| format!("cannot write {}", path.display()))?;
-    Ok(())
-}
-
-pub fn save_credentials(creds: &Credentials) -> Result<()> {
-    save_credentials_to(&credentials_path(), creds)
-}
-
-fn client() -> Result<Client> {
-    Ok(Client::builder()
+fn client() -> Result<reqwest::blocking::Client> {
+    Ok(reqwest::blocking::Client::builder()
         .user_agent(concat!("vex-registry/", env!("CARGO_PKG_VERSION")))
         .timeout(Duration::from_secs(120))
         .build()?)
 }
 
-/// Logs in with email and password and saves the returned access token.
-pub fn login(registry: &str, email: &str, password: &str) -> Result<Credentials> {
-    let base = normalize_registry(registry)?;
-    let resp: AuthResponse = client()?
-        .post(format!("{base}/api/auth/login"))
-        .json(&serde_json::json!({ "email": email, "password": password }))
-        .send()
-        .with_context(|| format!("cannot reach registry {base}"))?
-        .error_for_status()
-        .context("login rejected by registry")?
-        .json()
-        .context("unexpected login response from registry")?;
-    let creds = Credentials {
-        registry: base,
-        token: resp.access_token,
-    };
-    save_credentials(&creds)?;
-    Ok(creds)
-}
-
-/// Saves an API key (for CI) without contacting the registry.
-pub fn login_api_key(registry: &str, api_key: &str) -> Result<Credentials> {
-    let api_key = api_key.trim();
-    if api_key.is_empty() {
-        bail!("API key is empty");
-    }
-    let creds = Credentials {
-        registry: normalize_registry(registry)?,
-        token: api_key.to_string(),
-    };
-    save_credentials(&creds)?;
-    Ok(creds)
-}
-
-/// Creates the package entry if needed. An existing package (409) is fine.
-pub fn ensure_package(creds: &Credentials, name: &str, description: &str) -> Result<()> {
-    validate_component("name", name)?;
-    let resp = client()?
-        .post(format!("{}/api/packages", creds.registry))
-        .bearer_auth(&creds.token)
-        .json(&serde_json::json!({ "name": name, "description": description }))
-        .send()
-        .with_context(|| format!("cannot reach registry {}", creds.registry))?;
-    let status = resp.status();
-    if status.is_success() || status == StatusCode::CONFLICT {
-        Ok(())
+/// Reads `location`, which is an `https://`/`http://` URL, a `file://` URL,
+/// or a local path. At most `limit` bytes are accepted.
+pub fn fetch(location: &str, limit: u64) -> Result<Vec<u8>> {
+    let bytes = if location.starts_with("https://") || location.starts_with("http://") {
+        let resp = client()?
+            .get(location)
+            .send()
+            .with_context(|| format!("cannot reach {location}"))?
+            .error_for_status()
+            .with_context(|| format!("cannot fetch {location}"))?;
+        if resp.content_length().is_some_and(|len| len > limit) {
+            bail!("{location} is larger than {limit} bytes");
+        }
+        let mut body = Vec::new();
+        resp.take(limit + 1)
+            .read_to_end(&mut body)
+            .with_context(|| format!("cannot read {location}"))?;
+        body
     } else {
-        bail!("registry refused to create package `{name}`: HTTP {status}");
+        let path = location.strip_prefix("file://").unwrap_or(location);
+        let mut body = Vec::new();
+        fs::File::open(path)
+            .with_context(|| format!("cannot open {path}"))?
+            .take(limit + 1)
+            .read_to_end(&mut body)
+            .with_context(|| format!("cannot read {path}"))?;
+        body
+    };
+    if bytes.len() as u64 > limit {
+        bail!("{location} is larger than {limit} bytes");
     }
+    Ok(bytes)
 }
 
-/// Uploads a `.tar.gz` as `name@version` and checks the registry's checksum
-/// against the local file.
-pub fn publish_tarball(
-    creds: &Credentials,
-    name: &str,
-    version: &str,
-    tarball: &Path,
-) -> Result<PublishUploadResponse> {
-    validate_component("name", name)?;
-    validate_component("version", version)?;
-    if !tarball.is_file() {
-        bail!("tarball not found: {}", tarball.display());
-    }
-    let local = sha256_file(tarball)?;
-    let form = multipart::Form::new()
-        .text("version", version.to_string())
-        .file("file", tarball)
-        .with_context(|| format!("cannot read {}", tarball.display()))?;
-    let resp: PublishUploadResponse = client()?
-        .post(format!("{}/api/packages/{name}/upload", creds.registry))
-        .bearer_auth(&creds.token)
-        .multipart(form)
-        .send()
-        .with_context(|| format!("cannot reach registry {}", creds.registry))?
-        .error_for_status()
-        .with_context(|| format!("upload of {name}@{version} rejected"))?
-        .json()
-        .context("unexpected upload response from registry")?;
-    let digest = |s: &str| s.trim().trim_start_matches("sha256:").to_ascii_lowercase();
-    if digest(&resp.checksum) != digest(&local) {
+/// Loads an index from a URL, an `index.json` path, or an index checkout
+/// directory.
+pub fn load_index(location: &str) -> Result<Index> {
+    let path = Path::new(location);
+    let location = if path.is_dir() {
+        path.join(INDEX_FILE).to_string_lossy().into_owned()
+    } else {
+        location.to_string()
+    };
+    let bytes = fetch(&location, 16 * 1024 * 1024)?;
+    let index: Index = serde_json::from_slice(&bytes)
+        .with_context(|| format!("{location} is not a valid Vex index"))?;
+    if index.schema != SCHEMA {
         bail!(
-            "checksum mismatch after upload: local {local}, registry {}",
-            resp.checksum
+            "{location} uses index schema {} but this vexlang understands schema {SCHEMA}",
+            index.schema
         );
     }
-    Ok(resp)
+    Ok(index)
 }
 
-/// Downloads `name@version` into `out_dir/NAME-VERSION.tar.gz` and returns
-/// that path. The file only appears once the download is complete.
-pub fn download_package(
-    registry: &str,
-    token: Option<&str>,
-    name: &str,
-    version: &str,
-    out_dir: &Path,
-) -> Result<PathBuf> {
-    validate_component("name", name)?;
-    validate_component("version", version)?;
-    let base = normalize_registry(registry)?;
-    let mut req = client()?.get(format!("{base}/api/packages/{name}/{version}/download"));
-    if let Some(token) = token {
-        req = req.bearer_auth(token);
+impl Index {
+    /// The entry for `name@version`, refusing yanked versions.
+    pub fn resolve(&self, name: &str, version: &str) -> Result<&VersionEntry> {
+        validate_component("name", name)?;
+        validate_component("version", version)?;
+        let package = self
+            .packages
+            .get(name)
+            .with_context(|| format!("package `{name}` is not in the index"))?;
+        let entry = package.versions.get(version).with_context(|| {
+            let known: Vec<&str> = package.versions.keys().map(String::as_str).collect();
+            format!(
+                "`{name}` has no version `{version}` (available: {})",
+                if known.is_empty() {
+                    "none".to_string()
+                } else {
+                    known.join(", ")
+                }
+            )
+        })?;
+        if entry.yanked {
+            bail!("{name}@{version} has been yanked");
+        }
+        Ok(entry)
     }
-    let bytes = req
-        .send()
-        .with_context(|| format!("cannot reach registry {base}"))?
-        .error_for_status()
-        .with_context(|| format!("cannot download {name}@{version}"))?
-        .bytes()?;
+}
+
+/// Downloads `name@version` into `out_dir/NAME-VERSION.tar.gz`, verifying the
+/// size and SHA-256 from the index. Nothing is written unless both match.
+pub fn add(index: &Index, name: &str, version: &str, out_dir: &Path) -> Result<PathBuf> {
+    let entry = index.resolve(name, version)?;
+    let bytes = fetch(&entry.url, MAX_TARBALL_BYTES.min(entry.size))?;
+    if bytes.len() as u64 != entry.size {
+        bail!(
+            "{name}@{version}: downloaded {} bytes, index says {}",
+            bytes.len(),
+            entry.size
+        );
+    }
+    let actual = sha256_hex(&bytes);
+    if !actual.eq_ignore_ascii_case(&entry.sha256) {
+        bail!(
+            "{name}@{version}: SHA-256 mismatch (index {}, downloaded {actual})",
+            entry.sha256
+        );
+    }
     fs::create_dir_all(out_dir).with_context(|| format!("cannot create {}", out_dir.display()))?;
     let dest = out_dir.join(format!("{name}-{version}.tar.gz"));
     let partial = out_dir.join(format!(".{name}-{version}.tar.gz.part"));
@@ -265,10 +233,157 @@ pub fn download_package(
     Ok(dest)
 }
 
-/// `sha256:<hex>` digest of a file, the format the registry reports.
-pub fn sha256_file(path: &Path) -> Result<String> {
-    let data = fs::read(path).with_context(|| format!("cannot read {}", path.display()))?;
-    Ok(format!("sha256:{}", hex::encode(Sha256::digest(&data))))
+/// What [`publish`] recorded.
+#[derive(Debug)]
+pub struct Published {
+    pub index_file: PathBuf,
+    pub entry: VersionEntry,
+}
+
+/// Adds `name@version` (served from `url`) to the index checkout at
+/// `index_dir`, creating `index.json` if it does not exist yet.
+///
+/// Published versions are immutable: an existing `name@version` is an error.
+/// `url` must be `https://` so that consumers never fetch over plain HTTP.
+pub fn publish(
+    index_dir: &Path,
+    name: &str,
+    version: &str,
+    tarball: &Path,
+    url: &str,
+    description: Option<&str>,
+) -> Result<Published> {
+    validate_component("name", name)?;
+    validate_component("version", version)?;
+    if !url.starts_with("https://") {
+        bail!("tarball URL must start with https://, got `{url}`");
+    }
+    if !index_dir.is_dir() {
+        bail!(
+            "{} is not a directory (pass a checkout of the index repository)",
+            index_dir.display()
+        );
+    }
+    let size = fs::metadata(tarball)
+        .with_context(|| format!("tarball not found: {}", tarball.display()))?
+        .len();
+    if size > MAX_TARBALL_BYTES {
+        bail!(
+            "{} is {size} bytes; the limit is {MAX_TARBALL_BYTES}",
+            tarball.display()
+        );
+    }
+    let index_file = index_dir.join(INDEX_FILE);
+    let mut index = if index_file.exists() {
+        load_index(&index_file.to_string_lossy())?
+    } else {
+        Index::default()
+    };
+    let package = index.packages.entry(name.to_string()).or_default();
+    if package.versions.contains_key(version) {
+        bail!("{name}@{version} is already in the index; published versions are immutable");
+    }
+    if let Some(description) = description {
+        package.description = description.to_string();
+    }
+    let entry = VersionEntry {
+        url: url.to_string(),
+        sha256: sha256_file(tarball)?,
+        size,
+        yanked: false,
+    };
+    package.versions.insert(version.to_string(), entry.clone());
+
+    let mut json = serde_json::to_string_pretty(&index)?;
+    json.push('\n');
+    let partial = index_dir.join(".index.json.part");
+    fs::write(&partial, json).with_context(|| format!("cannot write {}", partial.display()))?;
+    fs::rename(&partial, &index_file)
+        .with_context(|| format!("cannot write {}", index_file.display()))?;
+    Ok(Published { index_file, entry })
+}
+
+/// Files `package` puts in a tarball: the manifest, README/LICENSE files and
+/// every `.vex` source, skipping hidden directories, `target/` and `dist/`.
+pub fn package_files(project_dir: &Path, manifest: &Path) -> Result<Vec<PathBuf>> {
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
+        for entry in fs::read_dir(dir).with_context(|| format!("cannot read {}", dir.display()))? {
+            let entry = entry?;
+            let path = entry.path();
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            let file_type = entry.file_type()?;
+            if name.starts_with('.') || file_type.is_symlink() {
+                continue;
+            }
+            if file_type.is_dir() {
+                if dir == root && (name == "target" || name == "dist") {
+                    continue;
+                }
+                walk(root, &path, out)?;
+            } else if file_type.is_file() {
+                let top_level_doc =
+                    dir == root && (name.starts_with("README") || name.starts_with("LICENSE"));
+                if name.ends_with(".vex") || top_level_doc {
+                    out.push(path.strip_prefix(root)?.to_path_buf());
+                }
+            }
+        }
+        Ok(())
+    }
+    let manifest_rel = manifest
+        .strip_prefix(project_dir)
+        .unwrap_or(manifest)
+        .to_path_buf();
+    let mut files = vec![manifest_rel];
+    walk(project_dir, project_dir, &mut files)?;
+    files.sort();
+    files.dedup();
+    Ok(files)
+}
+
+/// Builds `out_dir/NAME-VERSION.tar.gz` from `project_dir`.
+///
+/// The archive is reproducible: entries are sorted, live under
+/// `NAME-VERSION/`, and carry fixed mtimes, owners and modes, so the same
+/// sources always give the same SHA-256.
+pub fn package(
+    project_dir: &Path,
+    manifest: &Path,
+    name: &str,
+    version: &str,
+    out_dir: &Path,
+) -> Result<(PathBuf, Vec<PathBuf>)> {
+    validate_component("name", name)?;
+    validate_component("version", version)?;
+    let files = package_files(project_dir, manifest)?;
+    let prefix = format!("{name}-{version}");
+
+    let gz = flate2::GzBuilder::new()
+        .mtime(0)
+        .write(Vec::new(), flate2::Compression::default());
+    let mut tar = tar::Builder::new(gz);
+    tar.mode(tar::HeaderMode::Deterministic);
+    for rel in &files {
+        let data = fs::read(project_dir.join(rel))
+            .with_context(|| format!("cannot read {}", rel.display()))?;
+        let mut header = tar::Header::new_gnu();
+        header.set_size(data.len() as u64);
+        header.set_mode(0o644);
+        header.set_mtime(0);
+        header.set_uid(0);
+        header.set_gid(0);
+        header.set_entry_type(tar::EntryType::Regular);
+        tar.append_data(&mut header, Path::new(&prefix).join(rel), data.as_slice())?;
+    }
+    let bytes = tar.into_inner()?.finish()?;
+
+    fs::create_dir_all(out_dir).with_context(|| format!("cannot create {}", out_dir.display()))?;
+    let dest = out_dir.join(format!("{prefix}.tar.gz"));
+    let mut file =
+        fs::File::create(&dest).with_context(|| format!("cannot write {}", dest.display()))?;
+    file.write_all(&bytes)?;
+    Ok((dest, files))
 }
 
 #[cfg(test)]
@@ -280,6 +395,24 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    fn sample_project(dir: &Path) -> PathBuf {
+        fs::create_dir_all(dir.join("src/util")).unwrap();
+        fs::create_dir_all(dir.join(".git")).unwrap();
+        fs::create_dir_all(dir.join("target")).unwrap();
+        fs::write(
+            dir.join("vex.toml"),
+            "name = \"demo\"\nversion = \"0.1.0\"\n",
+        )
+        .unwrap();
+        fs::write(dir.join("README.md"), "# demo\n").unwrap();
+        fs::write(dir.join("src/main.vex"), "println(\"hi\");\n").unwrap();
+        fs::write(dir.join("src/util/math.vex"), "fn two() -> i32 { 2 }\n").unwrap();
+        fs::write(dir.join("src/notes.txt"), "not packaged").unwrap();
+        fs::write(dir.join(".git/config"), "secret").unwrap();
+        fs::write(dir.join("target/junk.vex"), "skip").unwrap();
+        dir.join("vex.toml")
     }
 
     #[test]
@@ -307,55 +440,183 @@ mod tests {
     }
 
     #[test]
-    fn registry_urls_are_normalized() {
+    fn sha256_matches_known_digest() {
         assert_eq!(
-            normalize_registry("https://reg.example/").unwrap(),
-            "https://reg.example"
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
-        assert_eq!(
-            normalize_registry(" http://localhost:3001 ").unwrap(),
-            "http://localhost:3001"
-        );
-        assert!(normalize_registry("ftp://x").is_err());
-        assert!(normalize_registry("localhost:3001").is_err());
     }
 
     #[test]
-    fn credentials_round_trip_with_private_permissions() {
-        let dir = temp_dir("creds");
-        let path = dir.join("nested").join("credentials.toml");
-        let creds = Credentials {
-            registry: "https://reg.example".into(),
-            token: "secret".into(),
-        };
-        save_credentials_to(&path, &creds).unwrap();
-        assert_eq!(load_credentials_from(&path).unwrap(), creds);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-            assert_eq!(mode, 0o600);
-        }
+    fn package_selects_sources_and_is_reproducible() {
+        let dir = temp_dir("pkg");
+        let manifest = sample_project(&dir.join("proj"));
+        let files = package_files(&dir.join("proj"), &manifest).unwrap();
+        let names: Vec<String> = files.iter().map(|p| p.display().to_string()).collect();
+        assert_eq!(
+            names,
+            ["README.md", "src/main.vex", "src/util/math.vex", "vex.toml"]
+        );
+
+        let (a, _) = package(
+            &dir.join("proj"),
+            &manifest,
+            "demo",
+            "0.1.0",
+            &dir.join("a"),
+        )
+        .unwrap();
+        let (b, _) = package(
+            &dir.join("proj"),
+            &manifest,
+            "demo",
+            "0.1.0",
+            &dir.join("b"),
+        )
+        .unwrap();
+        assert_eq!(a.file_name().unwrap(), "demo-0.1.0.tar.gz");
+        assert_eq!(sha256_file(&a).unwrap(), sha256_file(&b).unwrap());
+
+        let mut archive =
+            tar::Archive::new(flate2::read::GzDecoder::new(fs::File::open(&a).unwrap()));
+        let mut paths: Vec<String> = archive
+            .entries()
+            .unwrap()
+            .map(|e| e.unwrap().path().unwrap().display().to_string())
+            .collect();
+        paths.sort();
+        assert_eq!(
+            paths,
+            [
+                "demo-0.1.0/README.md",
+                "demo-0.1.0/src/main.vex",
+                "demo-0.1.0/src/util/math.vex",
+                "demo-0.1.0/vex.toml"
+            ]
+        );
         fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
-    fn missing_credentials_explain_how_to_log_in() {
-        let err = load_credentials_from(Path::new("/nonexistent/vex/credentials.toml"))
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("vexlang login"), "{err}");
+    fn publish_then_add_round_trip() {
+        let dir = temp_dir("roundtrip");
+        let manifest = sample_project(&dir.join("proj"));
+        let (tarball, _) = package(
+            &dir.join("proj"),
+            &manifest,
+            "demo",
+            "0.1.0",
+            &dir.join("dist"),
+        )
+        .unwrap();
+        let index_dir = dir.join("index");
+        fs::create_dir_all(&index_dir).unwrap();
+
+        let published = publish(
+            &index_dir,
+            "demo",
+            "0.1.0",
+            &tarball,
+            "https://example.invalid/demo-0.1.0.tar.gz",
+            Some("Demo package"),
+        )
+        .unwrap();
+        assert_eq!(published.entry.sha256, sha256_file(&tarball).unwrap());
+
+        // Immutability.
+        let again = publish(&index_dir, "demo", "0.1.0", &tarball, "https://x/y", None);
+        assert!(again.unwrap_err().to_string().contains("immutable"));
+
+        // Point the entry at the local file so `add` can run offline.
+        let mut index = load_index(&index_dir.to_string_lossy()).unwrap();
+        assert_eq!(index.packages["demo"].description, "Demo package");
+        index
+            .packages
+            .get_mut("demo")
+            .unwrap()
+            .versions
+            .get_mut("0.1.0")
+            .unwrap()
+            .url = format!("file://{}", tarball.display());
+        let dest = add(&index, "demo", "0.1.0", &dir.join("vendor")).unwrap();
+        assert_eq!(sha256_file(&dest).unwrap(), published.entry.sha256);
+
+        // Tampered tarball is rejected and nothing is written.
+        fs::write(&tarball, b"tampered").unwrap();
+        index
+            .packages
+            .get_mut("demo")
+            .unwrap()
+            .versions
+            .get_mut("0.1.0")
+            .unwrap()
+            .size = 8;
+        let err = add(&index, "demo", "0.1.0", &dir.join("vendor2")).unwrap_err();
+        assert!(err.to_string().contains("SHA-256 mismatch"), "{err}");
+        assert!(!dir.join("vendor2/demo-0.1.0.tar.gz").exists());
+        fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
-    fn sha256_matches_known_digest() {
-        let dir = temp_dir("sha");
-        let file = dir.join("abc.txt");
-        fs::write(&file, b"abc").unwrap();
-        assert_eq!(
-            sha256_file(&file).unwrap(),
-            "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    fn publish_requires_https() {
+        let dir = temp_dir("https");
+        fs::write(dir.join("t.tar.gz"), b"x").unwrap();
+        let err = publish(
+            &dir,
+            "p",
+            "1.0.0",
+            &dir.join("t.tar.gz"),
+            "http://x/t",
+            None,
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("https://"), "{err}");
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_reports_missing_and_yanked() {
+        let mut index = Index::default();
+        let mut pkg = PackageEntry::default();
+        pkg.versions.insert(
+            "1.0.0".into(),
+            VersionEntry {
+                url: "https://x".into(),
+                sha256: "00".into(),
+                size: 1,
+                yanked: true,
+            },
         );
+        index.packages.insert("p".into(), pkg);
+        assert!(
+            index
+                .resolve("q", "1.0.0")
+                .unwrap_err()
+                .to_string()
+                .contains("not in the index")
+        );
+        assert!(
+            index
+                .resolve("p", "2.0.0")
+                .unwrap_err()
+                .to_string()
+                .contains("available: 1.0.0")
+        );
+        assert!(
+            index
+                .resolve("p", "1.0.0")
+                .unwrap_err()
+                .to_string()
+                .contains("yanked")
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_schema() {
+        let dir = temp_dir("schema");
+        fs::write(dir.join(INDEX_FILE), r#"{"schema": 99, "packages": {}}"#).unwrap();
+        let err = load_index(&dir.to_string_lossy()).unwrap_err();
+        assert!(err.to_string().contains("schema 99"), "{err}");
         fs::remove_dir_all(dir).unwrap();
     }
 }

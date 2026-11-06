@@ -1,212 +1,169 @@
-//! CLI tests for `vexlang login | publish | add`. None of these need a live
-//! registry: they cover argument handling, local credential storage, input
-//! validation and the "registry unreachable" path (127.0.0.1:9, discard port).
+//! CLI tests for `vexlang package | publish | add` against a local static
+//! index. No network: tarball URLs are rewritten to `file://` for `add`.
 
-use std::path::PathBuf;
-use std::process::{Command, Output, Stdio};
-
-const DEAD_REGISTRY: &str = "http://127.0.0.1:9";
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
 
 fn temp_dir(tag: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("vexlang-registry-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).unwrap();
+    let dir = std::env::temp_dir().join(format!("vexlang-pkg-{tag}-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
     dir
 }
 
-fn vex(creds: &PathBuf, args: &[&str], envs: &[(&str, &str)], stdin: &str) -> Output {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_vexlang"));
-    cmd.args(args)
-        .env("VEX_CREDENTIALS", creds)
-        .env_remove("VEX_REGISTRY")
-        .env_remove("VEX_REGISTRY_PASSWORD")
-        .env_remove("VEX_REGISTRY_TOKEN")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    for (key, value) in envs {
-        cmd.env(key, value);
-    }
-    let mut child = cmd.spawn().expect("vexlang should start");
-    {
-        use std::io::Write;
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(stdin.as_bytes())
-            .unwrap();
-    }
-    child.wait_with_output().expect("vexlang should exit")
+fn vex(cwd: &Path, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_vexlang"))
+        .args(args)
+        .current_dir(cwd)
+        .env_remove("VEX_INDEX")
+        .output()
+        .expect("vexlang should run")
 }
 
-fn stderr(output: &Output) -> String {
-    String::from_utf8_lossy(&output.stderr).into_owned()
+fn text(output: &Output) -> String {
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
+}
+
+fn project(dir: &Path) {
+    fs::create_dir_all(dir.join("src")).unwrap();
+    fs::write(
+        dir.join("vex.toml"),
+        "[project]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+    )
+    .unwrap();
+    fs::write(dir.join("src/main.vex"), "println(\"hi\");\n").unwrap();
 }
 
 #[test]
-fn api_key_login_saves_private_credentials() {
-    let dir = temp_dir("key");
-    let creds = dir.join("credentials.toml");
+fn package_publish_add_round_trip() {
+    let dir = temp_dir("roundtrip");
+    let proj = dir.join("demo");
+    let index = dir.join("index");
+    fs::create_dir_all(&index).unwrap();
+    project(&proj);
+
+    let out = vex(&proj, &["package"]);
+    assert!(out.status.success(), "{}", text(&out));
+    let tarball = proj.join("dist/demo-0.1.0.tar.gz");
+    assert!(tarball.is_file());
+    assert!(text(&out).contains("src/main.vex"));
+
     let out = vex(
-        &creds,
-        &["login", "--key-stdin", "--registry", "https://reg.example/"],
-        &[],
-        "k3y\n",
-    );
-    assert!(out.status.success(), "{}", stderr(&out));
-    let saved = std::fs::read_to_string(&creds).unwrap();
-    assert!(
-        saved.contains("registry = \"https://reg.example\""),
-        "{saved}"
-    );
-    assert!(saved.contains("token = \"k3y\""), "{saved}");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mode = std::fs::metadata(&creds).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode, 0o600);
-    }
-    std::fs::remove_dir_all(dir).unwrap();
-}
-
-#[test]
-fn api_key_login_reads_token_from_env() {
-    let dir = temp_dir("env");
-    let creds = dir.join("credentials.toml");
-    let out = vex(
-        &creds,
-        &["login"],
-        &[("VEX_REGISTRY_TOKEN", "from-env")],
-        "",
-    );
-    assert!(out.status.success(), "{}", stderr(&out));
-    assert!(
-        std::fs::read_to_string(&creds)
-            .unwrap()
-            .contains("from-env")
-    );
-    std::fs::remove_dir_all(dir).unwrap();
-}
-
-#[test]
-fn password_flag_is_refused() {
-    let dir = temp_dir("pw");
-    let creds = dir.join("credentials.toml");
-    let out = vex(
-        &creds,
-        &["login", "--email", "a@b.c", "--password", "hunter2"],
-        &[],
-        "",
-    );
-    assert_eq!(out.status.code(), Some(2));
-    assert!(
-        stderr(&out).contains("--password-stdin"),
-        "{}",
-        stderr(&out)
-    );
-    assert!(!creds.exists());
-    std::fs::remove_dir_all(dir).unwrap();
-}
-
-#[test]
-fn email_login_without_password_source_is_a_usage_error() {
-    let dir = temp_dir("nopw");
-    let out = vex(&dir.join("c.toml"), &["login", "--email", "a@b.c"], &[], "");
-    assert_eq!(out.status.code(), Some(2));
-    assert!(stderr(&out).contains("VEX_REGISTRY_PASSWORD"));
-    std::fs::remove_dir_all(dir).unwrap();
-}
-
-#[test]
-fn unreachable_registry_fails_cleanly() {
-    let dir = temp_dir("dead");
-    let creds = dir.join("c.toml");
-    let out = vex(
-        &creds,
-        &[
-            "login",
-            "--email",
-            "a@b.c",
-            "--password-stdin",
-            "--registry",
-            DEAD_REGISTRY,
-        ],
-        &[],
-        "pw\n",
-    );
-    assert_eq!(out.status.code(), Some(1));
-    assert!(
-        stderr(&out).contains("cannot reach registry"),
-        "{}",
-        stderr(&out)
-    );
-    assert!(!creds.exists());
-    std::fs::remove_dir_all(dir).unwrap();
-}
-
-#[test]
-fn publish_without_login_points_at_login() {
-    let dir = temp_dir("nologin");
-    let out = vex(
-        &dir.join("missing.toml"),
+        &proj,
         &[
             "publish",
-            "--name",
-            "pkg",
-            "--version",
-            "0.1.0",
-            "--file",
-            "x.tar.gz",
+            "--index",
+            index.to_str().unwrap(),
+            "--url",
+            "https://example.invalid/demo-0.1.0.tar.gz",
+            "--description",
+            "Demo",
         ],
-        &[],
-        "",
+    );
+    assert!(out.status.success(), "{}", text(&out));
+    assert!(text(&out).contains("open a pull request"));
+
+    // Publishing the same version again is refused.
+    let out = vex(
+        &proj,
+        &[
+            "publish",
+            "--index",
+            index.to_str().unwrap(),
+            "--url",
+            "https://x/y",
+        ],
     );
     assert_eq!(out.status.code(), Some(1));
-    assert!(stderr(&out).contains("vexlang login"), "{}", stderr(&out));
-    std::fs::remove_dir_all(dir).unwrap();
-}
+    assert!(text(&out).contains("immutable"), "{}", text(&out));
 
-#[test]
-fn add_rejects_path_traversal_before_any_request() {
-    let dir = temp_dir("traversal");
+    // Serve the tarball from disk for `add`.
+    let index_file = index.join("index.json");
+    let json = fs::read_to_string(&index_file).unwrap().replace(
+        "https://example.invalid/demo-0.1.0.tar.gz",
+        &format!("file://{}", tarball.display()),
+    );
+    fs::write(&index_file, json).unwrap();
+
+    let vendor = dir.join("vendor");
     let out = vex(
-        &dir.join("missing.toml"),
+        &dir,
         &[
             "add",
-            "--name",
-            "../evil",
-            "--version",
-            "1.0.0",
+            "demo@0.1.0",
+            "--index",
+            index.to_str().unwrap(),
             "--out",
-            dir.to_str().unwrap(),
-            "--registry",
-            DEAD_REGISTRY,
+            vendor.to_str().unwrap(),
         ],
-        &[],
-        "",
     );
-    assert_eq!(out.status.code(), Some(1));
-    assert!(
-        stderr(&out).contains("invalid package name"),
-        "{}",
-        stderr(&out)
+    assert!(out.status.success(), "{}", text(&out));
+    assert_eq!(
+        fs::read(vendor.join("demo-0.1.0.tar.gz")).unwrap(),
+        fs::read(&tarball).unwrap()
     );
-    std::fs::remove_dir_all(dir).unwrap();
+    fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
-fn missing_and_unknown_arguments_are_usage_errors() {
+fn publish_rejects_plain_http_urls() {
+    let dir = temp_dir("http");
+    project(&dir);
+    assert!(vex(&dir, &["package"]).status.success());
+    let out = vex(
+        &dir,
+        &[
+            "publish",
+            "--index",
+            dir.to_str().unwrap(),
+            "--url",
+            "http://x/t.tar.gz",
+        ],
+    );
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out).contains("https://"), "{}", text(&out));
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn add_rejects_path_traversal_and_unknown_packages() {
+    let dir = temp_dir("add");
+    fs::write(dir.join("index.json"), r#"{"schema":1,"packages":{}}"#).unwrap();
+    let index = dir.to_str().unwrap();
+
+    let out = vex(&dir, &["add", "../evil@1.0.0", "--index", index]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out).contains("invalid package name"),
+        "{}",
+        text(&out)
+    );
+
+    let out = vex(&dir, &["add", "nope@1.0.0", "--index", index]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out).contains("not in the index"), "{}", text(&out));
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn usage_errors_exit_2() {
     let dir = temp_dir("usage");
-    let creds = dir.join("c.toml");
+    project(&dir);
     for args in [
-        &["add", "--name", "pkg"][..],
-        &["publish", "--name", "pkg", "--version"][..],
-        &["add", "--name", "pkg", "--version", "1", "--bogus"][..],
+        &["add"][..],
+        &["add", "demo"][..],
+        &["publish", "--url", "https://x/y"][..],
+        &["package", "--bogus"][..],
+        &["add", "demo@1", "--out"][..],
     ] {
-        let out = vex(&creds, args, &[], "");
-        assert_eq!(out.status.code(), Some(2), "{args:?}: {}", stderr(&out));
-        assert!(stderr(&out).contains("vexlang login"), "usage text missing");
+        let out = vex(&dir, args);
+        assert_eq!(out.status.code(), Some(2), "{args:?}: {}", text(&out));
+        assert!(text(&out).contains("vexlang package"), "usage text missing");
     }
-    std::fs::remove_dir_all(dir).unwrap();
+    fs::remove_dir_all(dir).unwrap();
 }

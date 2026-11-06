@@ -473,7 +473,7 @@ fn main() {
                     | "target"
                     | "qbe"
                     | "rust"
-                    | "login"
+                    | "package"
                     | "publish"
                     | "add"
             ) =>

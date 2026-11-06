@@ -2,14 +2,14 @@
 
 ## Unreleased
 
-- Added a package registry client: `vexlang login` (API key or
-  email/password), `vexlang publish` and `vexlang add`, implemented in the new
-  `vex-registry` workspace crate. Passwords and keys can come from stdin or
-  `VEX_REGISTRY_PASSWORD`/`VEX_REGISTRY_TOKEN`; `--password` is rejected.
-  Credentials are stored with mode `0600`; package names and versions are
-  validated against path traversal; uploads are checked against the
-  registry's SHA-256; downloads are written atomically. The client is
-  excluded from the wasm32 build.
+- Added package management against a static Git index (no server):
+  `vexlang package` builds a reproducible `NAME-VERSION.tar.gz` from
+  `vex.toml`, `vexlang publish` records the version (URL, SHA-256, size) in an
+  index checkout for a pull request, and `vexlang add NAME@VERSION`
+  downloads and verifies a package. Implemented in the new `vex-registry`
+  workspace crate and excluded from the wasm32 build. Published versions are
+  immutable, tarball URLs must be HTTPS, yanked versions are refused, and
+  package names and versions are validated against path traversal.
 - CI now runs tests and clippy across the whole workspace.
 - Fixed REPL evaluation so each accepted input runs once instead of replaying
   earlier statements and repeating their side effects. Runtime state now rolls
