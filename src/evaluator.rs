@@ -74,7 +74,7 @@ impl Session {
     /// Evaluate only the supplied statements while preserving this session's
     /// bindings and functions between REPL inputs.
     pub fn eval(&mut self, stmts: &[Stmt]) -> Result<Value, EvalError> {
-        for stmt in stmts {
+        for stmt in stmts.iter().flat_map(crate::analyzer::function_decls) {
             if let Stmt::Function {
                 name,
                 params,
