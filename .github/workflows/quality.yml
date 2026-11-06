@@ -73,6 +73,13 @@ jobs:
           toolchain: stable
       - run: ./scripts/check-release.sh "$GITHUB_REF_NAME"
       - run: ./scripts/release-artifacts.sh dist
-      - run: test -s dist/vexlang-*.crate
-      - run: test -s dist/vexlang-*.crate.sha256
+      # Name each artifact explicitly: `dist/vexlang-*.crate` also matches
+      # vexlang-registry-*.crate, and `test -s` with two paths is an error.
+      - name: Both crates and checksums exist
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          test -s "dist/vexlang-$version.crate"
+          test -s "dist/vexlang-$version.crate.sha256"
+          set -- dist/vexlang-registry-*.crate
+          test "$#" -eq 1 && test -s "$1" && test -s "$1.sha256"
       - run: (cd dist && sha256sum --check *.crate.sha256)
