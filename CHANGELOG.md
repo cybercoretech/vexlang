@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added a package registry client: `vexlang login` (API key or
+  email/password), `vexlang publish` and `vexlang add`, implemented in the new
+  `vex-registry` workspace crate. Passwords and keys can come from stdin or
+  `VEX_REGISTRY_PASSWORD`/`VEX_REGISTRY_TOKEN`; `--password` is rejected.
+  Credentials are stored with mode `0600`; package names and versions are
+  validated against path traversal; uploads are checked against the
+  registry's SHA-256; downloads are written atomically. The client is
+  excluded from the wasm32 build.
+- CI now runs tests and clippy across the whole workspace.
 - Fixed REPL evaluation so each accepted input runs once instead of replaying
   earlier statements and repeating their side effects. Runtime state now rolls
   back with failed snippets, with regression coverage for mutable bindings,
