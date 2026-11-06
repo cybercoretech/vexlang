@@ -9,16 +9,21 @@ readme = "README.md"
 repository = "https://github.com/cybercoretech/vexlang"
 homepage = "https://github.com/cybercoretech/vexlang"
 
-# If you had [workspace] here, remove it for now.
-# You only need workspace if you are splitting the compiler into
-# multiple separate crates (e.g., vexlang-core, vexlang-cli).
-
 [dependencies]
 pest = "2.7"
 pest_derive = "2.7"
+
+# The registry client uses blocking network I/O, so it is left out of the
+# wasm32 (browser) build entirely.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+anyhow = "1.0.104"
+vex-registry = { path = "crates/vex-registry", version = "0.1.0" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
+
+[workspace]
+members = [".", "crates/vex-registry"]

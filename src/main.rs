@@ -14,6 +14,8 @@ mod evaluator;
 mod ir;
 mod parser;
 mod project;
+#[cfg(not(target_arch = "wasm32"))]
+mod registry_cli;
 mod rust_codegen;
 
 use analyzer::SemanticAnalyzer;
@@ -296,8 +298,16 @@ fn read_source(path: Option<&str>) -> Result<String, String> {
     }
 }
 
-fn usage() -> &'static str {
-    "usage: vexlang [--json] [check|run|repl|project|fmt|test|build|ir|target|qbe|rust] [FILE|-]\n       vexlang FILE   (backwards-compatible alias for run)\n       vexlang --version"
+fn usage() -> String {
+    let mut text = String::from(
+        "usage: vexlang [--json] [check|run|repl|project|fmt|test|build|ir|target|qbe|rust] [FILE|-]\n       vexlang FILE   (backwards-compatible alias for run)\n       vexlang --version",
+    );
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        text.push_str("\n\n");
+        text.push_str(registry_cli::USAGE);
+    }
+    text
 }
 
 fn render_diagnostic(error: &Diagnostic, source: &str, path: Option<&str>, json: bool) -> String {
@@ -434,10 +444,19 @@ fn main() {
             }
         })
         .collect();
+
     if matches!(args.as_slice(), [flag] if flag == "--version" || flag == "-V") {
         println!("vexlang {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some((command, rest)) = args.split_first() {
+        if let Some(code) = registry_cli::run(command, rest) {
+            std::process::exit(code);
+        }
+    }
+
     let (command, path) = match args.as_slice() {
         [] => ("run", None),
         [one]
@@ -453,6 +472,10 @@ fn main() {
                     | "ir"
                     | "target"
                     | "qbe"
+                    | "rust"
+                    | "login"
+                    | "publish"
+                    | "add"
             ) =>
         {
             ("run", Some(one.as_str()))
@@ -480,6 +503,7 @@ fn main() {
             std::process::exit(2);
         }
     };
+
     if command == "repl" {
         repl();
         return;
@@ -494,6 +518,7 @@ fn main() {
         }
         return;
     }
+
     let source = match read_source(path) {
         Ok(source) => source,
         Err(error) => {
@@ -501,6 +526,7 @@ fn main() {
             std::process::exit(2);
         }
     };
+
     match command {
         "check" => match pipeline_all(&source) {
             Ok(_) => println!("ok"),

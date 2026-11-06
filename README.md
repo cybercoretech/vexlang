@@ -116,6 +116,36 @@ a command to emit one machine-readable diagnostic object on stderr. Exit status
 `0` means success, `1` means a source or test failure, `2` means a CLI or I/O
 error, and `3` means an explicitly unsupported target/backend operation.
 
+### 📦 Package registry client
+
+`vexlang login`, `publish` and `add` talk to a Vex package registry over HTTP.
+The client lives in the [`vex-registry`](crates/vex-registry) workspace crate
+and is only built for native targets (never for the wasm32 browser build).
+
+```sh
+# API key (CI): from a flag, stdin, or the environment
+printf '%s\n' "$KEY" | vexlang login --key-stdin --registry https://registry.example
+VEX_REGISTRY_TOKEN=... vexlang login
+
+# Email + password: the password never goes on the command line
+vexlang login --email you@example.com --password-stdin < password.txt
+VEX_REGISTRY_PASSWORD=... vexlang login --email you@example.com
+
+vexlang publish --name mypkg --version 0.1.0 --file mypkg-0.1.0.tar.gz [--description TEXT]
+vexlang add --name mypkg --version 0.1.0 [--out vendor] [--registry URL]
+```
+
+- 🌐 **Registry URL:** `--registry`, then `$VEX_REGISTRY`, then
+  `http://localhost:3001`. `publish` uses the registry you logged in to.
+- 🔐 **Credentials:** saved to `~/.config/vex/credentials.toml` with mode
+  `0600` (override the path with `$VEX_CREDENTIALS`). `--password` is refused
+  on purpose because it leaks into shell history.
+- 🧾 **Integrity:** `publish` compares the registry's SHA-256 with the local
+  tarball. `add` writes `NAME-VERSION.tar.gz` atomically and only sends your
+  token to the registry it belongs to.
+- 🛑 **Names and versions** may contain only letters, digits, `.`, `_`, `-`
+  and `+`, so a package cannot write outside `--out`.
+
 ### ⚠️ Usage warnings
 
 - Vex is still alpha software; syntax, IR details, and experimental backend

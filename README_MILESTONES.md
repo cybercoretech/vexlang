@@ -71,7 +71,9 @@ artifacts are introduced.
 
 ## 🔭 Milestone 14 — Ecosystem and tooling
 
-- Add package/project management.
+- Add package/project management. **Started:** `vexlang login`, `publish`
+  and `add` registry client (`crates/vex-registry`). Dependency resolution from
+  `vex.toml`, lockfiles and unpacking downloaded tarballs remain to do.
 - Add editor/LSP integration.
 - Add formatter guarantees and language-server diagnostics.
 - Publish stable standard-library and compatibility policies.
