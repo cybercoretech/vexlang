@@ -319,7 +319,7 @@ def render(data: dict) -> str:
     <a href="docs/index.html">docs</a>
     <a href="https://github.com/cybercoretech/vexlang" target="_blank" rel="noopener noreferrer">SOURCE ↗</a>
   </nav>
-  <button class="theme-trigger" type="button" data-theme-open aria-haspopup="dialog"><span class="theme-dot"></span><span>CYBERCORE THEME</span><b id="theme-current">—</b><span aria-hidden="true">⌄</span></button>
+  <cybercore-theme-chooser adopt><button class="theme-trigger" type="button">Neon Night</button></cybercore-theme-chooser>
 </header>
 <main id="main">
 
@@ -391,7 +391,6 @@ def render(data: dict) -> str:
 </footer>
 
 <script>window.VEXLANG_KEYWORD_INDEX={payload};</script>
-<script src="theme/theme-catalog.js"></script>
 <script src="theme/cybercore.js"></script>
 <script src="scripts/keywords.js"></script>
 </body>
