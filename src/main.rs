@@ -817,6 +817,22 @@ mod tests {
     }
 
     #[test]
+    fn equality_binds_tighter_than_logical_operators() {
+        // Regression: `==` had the precedence of `||`, so `a == 0 || b == 0`
+        // parsed as `((a == 0) || b) == 0` and failed to type-check.
+        for (source, expected) in [
+            ("let a = 0; let b = 1; a == 0 || b == 0;", true),
+            ("let x = 1; let y = 2; x == 1 && y == 2;", true),
+            ("let x = 1; x == 2 || x == 1 && false;", false),
+            ("1 + 2 == 3;", true),
+            ("2 * 3 == 6 && 1 < 2;", true),
+            ("true == (1 < 2);", true),
+        ] {
+            assert_eq!(run(source), Ok(Value::Bool(expected)), "{source}");
+        }
+    }
+
+    #[test]
     fn identifiers_may_start_with_keywords() {
         // Regression: keywords matched as prefixes, so `letter` (let), `user`
         // (use), `tests` (test) or `returned` (return) were parse errors.
