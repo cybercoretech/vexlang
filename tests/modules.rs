@@ -104,7 +104,9 @@ fn imported_code_works_in_every_backend() {
     }
     let rust = String::from_utf8(vex(&["rust", &main]).stdout).unwrap();
     assert!(
-        rust.contains("fn square") && !rust.contains("use math"),
+        rust.contains("fn math__square")
+            && rust.contains("math__square(5)")
+            && !rust.contains("use math"),
         "{rust}"
     );
     fs::remove_dir_all(dir).unwrap();
@@ -123,6 +125,7 @@ fn reports_module_errors_at_the_use_site() {
     write(&dir, "noisy.vex", "println(\"side effect\");\n");
     write(&dir, "broken.vex", "fn f() -> i32 { true }\n");
     write(&dir, "other.vex", "fn square(x: i32) -> i32 { x }\n");
+    write(&dir, "shape.vex", "record Point { x: i32 }\n");
     let cases = [
         ("use nope;\n1;\n", "E1101", "cannot find module `nope`"),
         ("use math::missing;\n1;\n", "E1101", "has no item `missing`"),
@@ -131,14 +134,35 @@ fn reports_module_errors_at_the_use_site() {
         ("use noisy;\n1;\n", "E1102", "may only contain declarations"),
         ("use broken;\n1;\n", "E1102", "error in module `broken`"),
         (
-            "use math;\nuse other;\n1;\n",
+            "use math;\nuse other;\nsquare(2);\n",
             "E1104",
-            "declared by both module `math` and module `other`",
+            "`square` is ambiguous: it is imported from module `math` and module `other`",
         ),
         (
-            "use math;\nfn square(x: i32) -> i32 { x }\n1;\n",
+            "use shape;\nrecord Point { x: i32 }\n1;\n",
             "E1104",
-            "also imported from module `math`",
+            "also imported from module `shape`",
+        ),
+        (
+            "math::square(2);\n",
+            "E1101",
+            "module `math` is not imported here",
+        ),
+        ("use math;\nmath::helper();\n", "E1105", "not exported"),
+        (
+            "use math;\nmath::cube(2);\n",
+            "E1101",
+            "has no function `cube`",
+        ),
+        (
+            "use shape;\nshape::Point(2);\n",
+            "E1101",
+            "is not a function",
+        ),
+        (
+            "use math;\nhelper();\n",
+            "E2001",
+            "undefined function `helper`",
         ),
         ("use a::b::c;\n1;\n", "E1101", "nested module paths"),
     ];
@@ -180,5 +204,69 @@ fn modules_are_loaded_once_and_tests_are_not_imported() {
     let (ok, text) = run(&main);
     assert!(ok, "{text}");
     assert!(text.contains("Int(3)"), "{text}");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn module_functions_are_namespaced() {
+    let dir = temp_dir("namespaced");
+    write(
+        &dir,
+        "math.vex",
+        "fn helper() -> i32 { 100 }\nfn square(x: i32) -> i32 { x * x + helper() - 100 }\nfn min(a: i32, b: i32) -> i32 { if a < b { a } else { b } }\nexport square;\nexport min;\n",
+    );
+    write(
+        &dir,
+        "other.vex",
+        "fn min(a: i32, b: i32) -> i32 { 0 - 1 }\n",
+    );
+    let cases = [
+        // Qualified calls, with or without an unqualified import.
+        ("use math;\nmath::square(3);\n", "Int(9)"),
+        (
+            "use math::square;\nmath::min(4, 2) + square(2);\n",
+            "Int(6)",
+        ),
+        // The program's own function wins over the glob import...
+        (
+            "use math;\nfn min(a: i32, b: i32) -> i32 { 42 }\nmin(1, 2) + math::min(1, 2);\n",
+            "Int(43)",
+        ),
+        // ...and over a module's private helper of the same name.
+        (
+            "use math;\nfn helper() -> i32 { 7 }\nhelper() + square(2);\n",
+            "Int(11)",
+        ),
+        // Two modules with the same function: fine when qualified.
+        (
+            "use math;\nuse other;\nmath::min(5, 6) + other::min(5, 6);\n",
+            "Int(4)",
+        ),
+        // `use m::f` picks one of two otherwise ambiguous names.
+        ("use math;\nuse other::min;\nmin(5, 6);\n", "Int(-1)"),
+    ];
+    for (i, (program, expected)) in cases.iter().enumerate() {
+        let main = write(&dir, &format!("case{i}.vex"), program);
+        let (ok, text) = run(&main);
+        assert!(ok && text.contains(expected), "{program:?}:\n{text}");
+    }
+    let main = write(
+        &dir,
+        "both.vex",
+        "use math;\nuse other;\nmath::min(5, 6) + other::min(5, 6);\n",
+    );
+    for command in ["check", "ir", "build", "rust", "qbe"] {
+        let out = vex(&[command, &main]);
+        assert!(
+            out.status.success(),
+            "{command}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    let rust = String::from_utf8(vex(&["rust", &main]).stdout).unwrap();
+    assert!(
+        rust.contains("fn math__min") && rust.contains("fn other__min"),
+        "{rust}"
+    );
     fs::remove_dir_all(dir).unwrap();
 }

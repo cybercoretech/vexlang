@@ -5,9 +5,9 @@
 `use` makes another module's declarations available:
 
 ```vex
-use math;           // everything in module `math`
+use math;           // math's functions, callable as `square(..)` or `math::square(..)`
 use math::*;        // the same
-use math::square;   // checks that `square` exists (and is exported)
+use math::square;   // only `square` unqualified; others as `math::cube(..)`
 ```
 
 A module named `math` is found in this order:
@@ -20,25 +20,36 @@ A module named `math` is found in this order:
 
 The rules in this first version are deliberately simple:
 
-- **One namespace.** Imported declarations keep their names. If two modules,
-  or a module and your program, declare the same name, that's an error that
-  names both.
+- **Functions are namespaced.** Every public function of an imported module
+  can be called as `module::function(...)`. `use module;` also makes them
+  callable unqualified, and `use module::function;` does that for one
+  function and takes precedence over glob imports. A function your program
+  declares itself wins over an imported one with the same name, and a
+  module's private helpers never clash with anything. If two glob-imported
+  modules both provide `min`, calling plain `min(..)` is an ambiguity error
+  (`E1104`), and `a::min(..)` / `b::min(..)` both work.
+- **Types share one namespace.** Records, enums, traits, newtypes,
+  contracts, `impl` methods and `extern`/`trusted` functions keep their
+  names. If two modules, or a module and your program, declare the same one,
+  that's an error that names both.
 - **Declarations only.** A module may contain `fn`, `record`, `enum`, `trait`,
   `impl`, `newtype`, `contract`, `use`, `export`, `module`, `test` and `bench`.
   Top-level statements are rejected, so importing never runs code. `test` and
   `bench` items are not imported.
-- **Exports.** If a module has any `export NAME;` statements, `use mod::item`
+- **Exports.** If a module has any `export NAME;` statements, only exported
+  functions are imported or callable as `module::item`, and `use mod::item`
   may only name exported items. A module without exports is fully public.
+- In generated Rust and QBE, `math::square` is named `math__square`.
 - Each module loads once. Import cycles are reported as errors.
 - Imported code works in every command: `run`, `check`, `test`, `build`/`ir`,
   `target`/`qbe` (within the scalar subset) and `rust`.
 
 | Code | Meaning |
 | --- | --- |
-| `E1101` | module or item not found, or an unsupported nested path |
+| `E1101` | module or item not found, `module::f` for a module this file doesn't import, or an unsupported nested path |
 | `E1102` | the module failed to parse or check, or has top-level statements |
 | `E1103` | import cycle |
-| `E1104` | the same name is declared in two places |
+| `E1104` | a type is declared in two places, or an unqualified call is ambiguous |
 | `E1105` | item not exported, or an export of an undeclared name |
 
 ## Packages

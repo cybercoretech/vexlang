@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Module functions are namespaced. Any public function of an imported module
+  can be called as `module::function(...)`, so two packages can both define
+  `min`, and a program can declare its own `min` next to `use vexstd;`
+  instead of getting a clash error. Calling a plain name that two glob
+  imports provide is an ambiguity error (`E1104`). `use module::function;`
+  takes precedence over glob imports. Types (records, enums, traits, ...)
+  still share one namespace.
+- Behavior change: when a module has `export` statements, a glob `use` now
+  imports only its exported functions. Its private helpers are no longer
+  callable from the importer and no longer clash with the importer's names.
+- Generated Rust and QBE name module functions `module__function`.
+
 ## 0.1.0-alpha.2 (2026-11-05)
 
 Highlights: `use` now loads code, and Vex has a package manager backed by

@@ -603,7 +603,7 @@ impl<'a> TextParser<'a> {
             "false" => Ok(Expr::Bool(false)),
             _ => {
                 self.ws();
-                let mut value = if self.peek() == Some(b':')
+                let value = if self.peek() == Some(b':')
                     && self.input.get(self.pos + 1) == Some(&b':')
                 {
                     self.pos += 2;
@@ -621,6 +621,11 @@ impl<'a> TextParser<'a> {
                         String::from_utf8_lossy(&self.input[variant_start..self.pos]).into_owned();
                     let mut fields = Vec::new();
                     self.ws();
+                    if self.peek() == Some(b'(') {
+                        // `module::function(args)`: a qualified call.
+                        let args = self.call_args()?;
+                        return self.postfix(Expr::Call(format!("{name}::{variant}"), args));
+                    }
                     if self.peek() == Some(b'{') {
                         self.pos += 1;
                         self.ws();
@@ -708,26 +713,7 @@ impl<'a> TextParser<'a> {
                     self.pos += 1;
                     Expr::Record(name.into_owned(), fields)
                 } else if self.peek() == Some(b'(') {
-                    self.pos += 1;
-                    let mut args = Vec::new();
-                    self.ws();
-                    if self.peek() != Some(b')') {
-                        loop {
-                            args.push(self.binary(0)?);
-                            self.ws();
-                            if self.peek() == Some(b',') {
-                                self.pos += 1;
-                                continue;
-                            }
-                            break;
-                        }
-                    }
-                    self.ws();
-                    if self.peek() != Some(b')') {
-                        return Err(BuildError("missing `)` in call".into()));
-                    }
-                    self.pos += 1;
-                    Expr::Call(name.into_owned(), args)
+                    Expr::Call(name.into_owned(), self.call_args()?)
                 } else if self.peek() == Some(b'[') {
                     let mut value = Expr::Var(name.into_owned());
                     while self.peek() == Some(b'[') {
@@ -744,39 +730,68 @@ impl<'a> TextParser<'a> {
                 } else {
                     Expr::Var(name.into_owned())
                 };
-                loop {
-                    self.ws();
-                    if self.peek() == Some(b'[') {
-                        self.pos += 1;
-                        let index = self.binary(0)?;
-                        self.ws();
-                        if self.peek() != Some(b']') {
-                            return Err(BuildError("missing `]` in index expression".into()));
-                        }
-                        self.pos += 1;
-                        value = Expr::Index(Box::new(value), Box::new(index));
-                        continue;
-                    }
-                    if self.peek() != Some(b'.') {
-                        break;
-                    }
-                    self.pos += 1;
-                    let start = self.pos;
-                    while self
-                        .peek()
-                        .is_some_and(|c| c.is_ascii_alphanumeric() || c == b'_')
-                    {
-                        self.pos += 1;
-                    }
-                    if start == self.pos {
-                        return Err(BuildError("field access requires a field name".into()));
-                    }
-                    let field = String::from_utf8_lossy(&self.input[start..self.pos]).into_owned();
-                    value = Expr::Field(Box::new(value), field);
-                }
-                Ok(value)
+                self.postfix(value)
             }
         }
+    }
+
+    /// `[index]` and `.field` suffixes after an atom.
+    fn postfix(&mut self, mut value: Expr) -> Result<Expr, BuildError> {
+        loop {
+            self.ws();
+            if self.peek() == Some(b'[') {
+                self.pos += 1;
+                let index = self.binary(0)?;
+                self.ws();
+                if self.peek() != Some(b']') {
+                    return Err(BuildError("missing `]` in index expression".into()));
+                }
+                self.pos += 1;
+                value = Expr::Index(Box::new(value), Box::new(index));
+                continue;
+            }
+            if self.peek() != Some(b'.') {
+                break;
+            }
+            self.pos += 1;
+            let start = self.pos;
+            while self
+                .peek()
+                .is_some_and(|c| c.is_ascii_alphanumeric() || c == b'_')
+            {
+                self.pos += 1;
+            }
+            if start == self.pos {
+                return Err(BuildError("field access requires a field name".into()));
+            }
+            let field = String::from_utf8_lossy(&self.input[start..self.pos]).into_owned();
+            value = Expr::Field(Box::new(value), field);
+        }
+        Ok(value)
+    }
+
+    /// `(arg, ...)`, starting at the `(`.
+    fn call_args(&mut self) -> Result<Vec<Expr>, BuildError> {
+        self.pos += 1;
+        let mut args = Vec::new();
+        self.ws();
+        if self.peek() != Some(b')') {
+            loop {
+                args.push(self.binary(0)?);
+                self.ws();
+                if self.peek() == Some(b',') {
+                    self.pos += 1;
+                    continue;
+                }
+                break;
+            }
+        }
+        self.ws();
+        if self.peek() != Some(b')') {
+            return Err(BuildError("missing `)` in call".into()));
+        }
+        self.pos += 1;
+        Ok(args)
     }
 
     fn ws(&mut self) {

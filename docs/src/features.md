@@ -24,8 +24,9 @@ The interpreter currently supports:
 ## Deferred or intentionally unsupported
 
 Floating point values, resources (`res`), map mutation/iteration, generics,
-filesystem access, nested module namespaces, version ranges and project execution
-are deferred. `use` imports modules and packages into one shared namespace, and
+filesystem access, nested module paths, version ranges and project execution
+are deferred. `use` imports modules and packages; their functions are
+namespaced (`module::function`) while types share one namespace, and
 `vex.toml` dependencies are installed with a `vex.lock` lockfile. Record
 types are the first supported user-defined type. Milestone 9's lightweight
 compatibility, diagnostic,
@@ -67,4 +68,4 @@ Vex is suitable for a labeled `0.1.0-alpha.2` public release as an interpreter
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 `security@cybercoretech.net`. Native executable artifacts, a fuzzing service, maps,
-generics, module namespaces and version ranges remain post-alpha work.
+generics, nested module paths and version ranges remain post-alpha work.
