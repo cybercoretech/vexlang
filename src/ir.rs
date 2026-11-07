@@ -1067,6 +1067,7 @@ fn lower_expr(expr: &Expr, functions: &Functions, scope: &mut Scope) -> Result<I
                 "map" | "map_get" => IrType::Record("Map".into()),
                 "i32" => IrType::I32,
                 "u64" => IrType::U64,
+                "string" => IrType::String,
                 _ => functions
                     .get(name)
                     .map(|(_, ty)| ty.clone())

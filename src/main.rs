@@ -811,6 +811,43 @@ mod tests {
     }
 
     #[test]
+    fn plus_joins_strings_and_string_converts_scalars() {
+        for (source, expected) in [
+            (r#""ab" + "cd";"#, "abcd"),
+            (r#"let a = "x"; let b = a + "y" + a; b;"#, "xyx"),
+            (
+                r#"fn tag(n: i32) -> string { "no." + string(n) } tag(7) + "!";"#,
+                "no.7!",
+            ),
+            (
+                r#""" + string(u64(9)) + string(false) + string("s");"#,
+                "9falses",
+            ),
+            (
+                r#"let s = ""; let i = 0; while i < 3 { s = s + string(i); i = i + 1; } s;"#,
+                "012",
+            ),
+        ] {
+            assert_eq!(run(source), Ok(Value::String(expected.into())), "{source}");
+        }
+        assert_eq!(run(r#"("a" + "b") == "ab";"#), Ok(Value::Bool(true)));
+        for (source, message) in [
+            (r#""n=" + 1;"#, "`+` joins two strings"),
+            (r#"1 + "a";"#, "`+` joins two strings"),
+            (r#""a" - "b";"#, "numeric operands"),
+            (r#"true + "a";"#, "`+` joins two strings"),
+            (
+                "record P { x: i32 } string(P { x: 1 });",
+                "string() converts",
+            ),
+            ("string(1, 2);", "string expects one argument"),
+        ] {
+            let error = run(source).unwrap_err();
+            assert!(error.contains(message), "{source}: {error}");
+        }
+    }
+
+    #[test]
     fn equality_binds_tighter_than_logical_operators() {
         // Regression: `==` had the precedence of `||`, so `a == 0 || b == 0`
         // parsed as `((a == 0) || b) == 0` and failed to type-check.
