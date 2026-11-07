@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Rust backend: `Result` annotations (parameters, return types, lets) now
+  compile. Vex's `Result` has untyped payloads, so generated code declares
+  `type VexResult<T = i32, E = String> = Result<T, E>` (only when it's used)
+  and maps `Result` to it. `?` in `main` still converts the error.
+  vexstd's `unwrap_or`/`is_ok`/`is_err` now transpile, and its whole test
+  suite compiles and passes as Rust. Generated code also allows
+  `non_snake_case`, for the `module__function` names.
+- New `tests/rust_backend.rs` transpiles sample programs (Result/`?`,
+  string joins, namespaced modules), compiles them with `rustc` and checks
+  that the output and the interpreter's agree, with no rustc warnings.
+
 ## 0.1.0-alpha.3 (2026-11-06)
 
 Highlights: module functions are namespaced (`vexstd::clamp(...)`), `+`

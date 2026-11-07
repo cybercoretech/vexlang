@@ -20,7 +20,7 @@ diagnostics to a single machine-readable JSON object on standard error.
 | `ir FILE` | Alias for `build`; print the typed textual IR | `0` |
 | `target FILE` | Validate against `vex-scalar-v1` and emit textual target IR | `0` |
 | `qbe FILE` | Validate against `vex-scalar-v1` and emit experimental QBE IL | `0` |
-| `rust FILE` | Validate and transpile the program to standalone Rust source code | `0` |
+| `rust FILE` | Validate and transpile the program to standalone Rust source code (`Result` becomes `Result<i32, String>`) | `0` |
 | `new NAME [--lib]` | Create a program or library project skeleton | `0` |
 | `add NAME[@REQ]` | Add a dependency (a version requirement such as `^0.2`; default: the latest version) to `vex.toml` and install it | `0` |
 | `remove NAME` | Remove a dependency and uninstall it | `0` |

@@ -191,7 +191,10 @@ vexlang yank NAME@VERSION --index ../vex-index
   `bool`, `unit`, declared function calls, locals, structured control flow,
   loop control, returns, and checked scalar arithmetic.
 - `rust` emits standalone Rust source code supporting records, enums, arrays,
-  match expressions, functions, loops, and results, which compiles directly with `rustc`.
+  match expressions, functions, loops, results, string joins and module
+  functions, which compiles directly with `rustc`. Vex's untyped `Result`
+  becomes `VexResult`, an alias for `Result<i32, String>`, so `Ok` values
+  must be `i32` and errors strings in programs you transpile.
 - Interpreter features such as strings, `u64`, records, arrays, maps, enums,
   `Result`, and I/O builtins are rejected at the `vex-scalar-v1` target
   boundary until their runtime ABI is specified.
