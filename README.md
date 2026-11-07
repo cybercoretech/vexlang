@@ -148,7 +148,9 @@ only built for native targets.
 ```sh
 vexlang new app && cd app        # or: vexlang new mylib --lib
 vexlang add greeter              # latest version -> vex.toml, vex.lock, vex_modules/
+vexlang add greeter@^0.2         # or a version requirement
 vexlang install --locked         # CI: reproduce exactly what vex.lock pins
+vexlang update [greeter]         # move locked versions to the newest match
 vexlang remove greeter
 vexlang search greet | vexlang info greeter
 
@@ -157,9 +159,10 @@ vexlang publish --index ../vex-index --url https://.../NAME-VERSION.tar.gz
 vexlang yank NAME@VERSION --index ../vex-index
 ```
 
-- 🔗 **Dependencies:** listed under `[dependencies]` in `vex.toml` with exact
-  versions and resolved transitively. Two versions of one package are a
-  conflict. `vex.lock` pins every URL and hash, and `--offline` installs from
+- 🔗 **Dependencies:** listed under `[dependencies]` in `vex.toml` as
+  Cargo-style requirements (`"0.1.0"` means `^0.1.0`; also `~`, `=`, `*`,
+  `>=1.2, <2`) and resolved transitively to one version per package.
+  `install` keeps locked versions, and `update` moves them. `vex.lock` pins every URL and hash, and `--offline` installs from
   the lock and the download cache.
 - 🧾 **Integrity:** every tarball's size and SHA-256 are verified before
   anything is unpacked. Archives with paths outside the package, links or
@@ -167,7 +170,7 @@ vexlang yank NAME@VERSION --index ../vex-index
 - 🧊 **Immutability:** published versions can't be overwritten. Yanked
   versions are skipped by `add` but stay installable from an existing lock.
 - 🔒 **HTTPS-only** tarball URLs. 🛑 **Validated names and versions**
-  (letters, digits, `.`, `_`, `-`, `+`).
+  (letters, digits, `.`, `_`, `-`, `+`; requirements are parsed strictly).
 - 🌐 **Index location:** `--index`, then `$VEX_INDEX`, then the vex-index
   raw URL. A local checkout directory or an `index.json` path works too.
 

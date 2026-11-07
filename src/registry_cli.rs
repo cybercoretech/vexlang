@@ -1,5 +1,5 @@
 //! Package commands on top of `vexlang_registry`:
-//! `new | package | publish | yank | add | remove | install | fetch | search | info`.
+//! `new | package | publish | yank | add | remove | install | update | fetch | search | info`.
 //!
 //! Packages live in a static Git index (no server, no login). See the
 //! `vexlang_registry` crate docs for the index and lockfile formats.
@@ -8,13 +8,15 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use vexlang_registry::install::{InstallOptions, InstallReport};
+use vexlang_registry::install::{InstallOptions, InstallReport, Update};
+use vexlang_registry::req::VersionReq;
 
 pub const USAGE: &str = "packages:\n\
        vexlang new NAME [--lib]                         create a project (or library) skeleton\n\
-       vexlang add NAME[@VERSION] [--index I]           add a dependency to vex.toml and install it\n\
+       vexlang add NAME[@REQ] [--index I]               add a dependency (REQ: 1.2.3 = ^1.2.3, ~1.2, =1.2.3, >=1, <2)\n\
        vexlang remove NAME                              drop a dependency and uninstall it\n\
        vexlang install [--locked] [--offline]           install vex.toml dependencies into vex_modules/\n\
+       vexlang update [NAME]                            move locked versions to the newest that match\n\
        vexlang search [TERM] | vexlang info NAME        browse the index\n\
        vexlang fetch NAME@VERSION [--out DIR]           download and verify one tarball\n\
        vexlang package [vex.toml] [--out DIR]           build dist/NAME-VERSION.tar.gz\n\
@@ -34,6 +36,7 @@ pub fn run(command: &str, rest: &[String]) -> Option<i32> {
         "add" => add(rest),
         "remove" => remove(rest),
         "install" => install(rest),
+        "update" => update(rest),
         "fetch" => fetch(rest),
         "search" => search(rest),
         "info" => info(rest),
@@ -186,8 +189,14 @@ fn run_install(manifest: &Manifest, index: &str, options: InstallOptions) -> Cli
 }
 
 fn print_report(report: &InstallReport) {
+    for (name, old, new) in &report.changed {
+        println!("  updated   {name} {old} -> {new}");
+    }
     for id in &report.installed {
-        println!("  installed {id}");
+        let name = id.split('@').next().unwrap_or(id);
+        if !report.changed.iter().any(|(n, _, _)| n == name) {
+            println!("  installed {id}");
+        }
     }
     for name in &report.removed {
         println!("  removed   {name}");
@@ -345,7 +354,7 @@ fn add(rest: &[String]) -> CliResult {
         }
     };
     vexlang_registry::validate_component("name", &name)?;
-    vexlang_registry::validate_component("version", &version)?;
+    VersionReq::parse(&version)?;
     if name == m.config.name {
         return Err(failed(format!(
             "a project cannot depend on itself (`{name}`)"
@@ -395,6 +404,39 @@ fn install(rest: &[String]) -> CliResult {
         InstallOptions {
             locked: flags.has("--locked"),
             offline: flags.has("--offline"),
+            ..InstallOptions::default()
+        },
+    )
+}
+
+fn update(rest: &[String]) -> CliResult {
+    let flags = Flags::parse(rest, &["--manifest", "--index"], &[])?;
+    let m = manifest_flag(&flags)?;
+    let update = match flags.positional.as_deref() {
+        None => Update::All,
+        Some(name) => {
+            vexlang_registry::validate_component("name", name)?;
+            let lock = vexlang_registry::install::read_lock(&m.dir)?;
+            let known = m.config.dependencies.contains_key(name)
+                || lock
+                    .iter()
+                    .flat_map(|l| &l.packages)
+                    .any(|p| p.name == name);
+            if !known {
+                return Err(failed(format!(
+                    "`{name}` is not a dependency of {}",
+                    m.path.display()
+                )));
+            }
+            Update::Only([name.to_string()].into())
+        }
+    };
+    run_install(
+        &m,
+        &flags.index(),
+        InstallOptions {
+            update,
+            ..InstallOptions::default()
         },
     )
 }
