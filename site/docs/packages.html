@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/book-5c9b8e5d.css">
+        <link rel="stylesheet" href="theme/book-f2ccc6d4.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1e1e9c3e.js";
+            window.path_to_searchindex_js = "searchindex-970c2591.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -178,9 +178,9 @@
                         <h1 id="modules-and-packages"><a class="header" href="#modules-and-packages">Modules and packages</a></h1>
 <h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
 <p><code>use</code> makes another module’s declarations available:</p>
-<pre><code class="language-vex">use math;           // everything in module `math`
+<pre><code class="language-vex">use math;           // math's functions, callable as `square(..)` or `math::square(..)`
 use math::*;        // the same
-use math::square;   // checks that `square` exists (and is exported)
+use math::square;   // only `square` unqualified; others as `math::cube(..)`
 </code></pre>
 <p>A module named <code>math</code> is found in this order:</p>
 <ol>
@@ -192,15 +192,26 @@ the source file that contains a <code>vex.toml</code>.</li>
 </ol>
 <p>The rules in this first version are deliberately simple:</p>
 <ul>
-<li><strong>One namespace.</strong> Imported declarations keep their names. If two modules,
-or a module and your program, declare the same name, that’s an error that
-names both.</li>
+<li><strong>Functions are namespaced.</strong> Every public function of an imported module
+can be called as <code>module::function(...)</code>. <code>use module;</code> also makes them
+callable unqualified, and <code>use module::function;</code> does that for one
+function and takes precedence over glob imports. A function your program
+declares itself wins over an imported one with the same name, and a
+module’s private helpers never clash with anything. If two glob-imported
+modules both provide <code>min</code>, calling plain <code>min(..)</code> is an ambiguity error
+(<code>E1104</code>), and <code>a::min(..)</code> / <code>b::min(..)</code> both work.</li>
+<li><strong>Types share one namespace.</strong> Records, enums, traits, newtypes,
+contracts, <code>impl</code> methods and <code>extern</code>/<code>trusted</code> functions keep their
+names. If two modules, or a module and your program, declare the same one,
+that’s an error that names both.</li>
 <li><strong>Declarations only.</strong> A module may contain <code>fn</code>, <code>record</code>, <code>enum</code>, <code>trait</code>,
 <code>impl</code>, <code>newtype</code>, <code>contract</code>, <code>use</code>, <code>export</code>, <code>module</code>, <code>test</code> and <code>bench</code>.
 Top-level statements are rejected, so importing never runs code. <code>test</code> and
 <code>bench</code> items are not imported.</li>
-<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, <code>use mod::item</code>
+<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, only exported
+functions are imported or callable as <code>module::item</code>, and <code>use mod::item</code>
 may only name exported items. A module without exports is fully public.</li>
+<li>In generated Rust and QBE, <code>math::square</code> is named <code>math__square</code>.</li>
 <li>Each module loads once. Import cycles are reported as errors.</li>
 <li>Imported code works in every command: <code>run</code>, <code>check</code>, <code>test</code>, <code>build</code>/<code>ir</code>,
 <code>target</code>/<code>qbe</code> (within the scalar subset) and <code>rust</code>.</li>
@@ -211,10 +222,10 @@ may only name exported items. A module without exports is fully public.</li>
 <tr><th>Code</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>E1101</code></td><td>module or item not found, or an unsupported nested path</td></tr>
+<tr><td><code>E1101</code></td><td>module or item not found, <code>module::f</code> for a module this file doesn’t import, or an unsupported nested path</td></tr>
 <tr><td><code>E1102</code></td><td>the module failed to parse or check, or has top-level statements</td></tr>
 <tr><td><code>E1103</code></td><td>import cycle</td></tr>
-<tr><td><code>E1104</code></td><td>the same name is declared in two places</td></tr>
+<tr><td><code>E1104</code></td><td>a type is declared in two places, or an unqualified call is ambiguous</td></tr>
 <tr><td><code>E1105</code></td><td>item not exported, or an export of an undeclared name</td></tr>
 </tbody>
 </table>

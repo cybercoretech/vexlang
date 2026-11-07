@@ -24,3 +24,19 @@ a { color: var(--accent); }
     margin: 20px 0;
     color: #ffffff;
 }
+
+/* Touch screens: menu-bar icons and standalone list links at least 24px tall. */
+@media (pointer: coarse) {
+    .menu-bar .icon-button,
+    .menu-bar .right-buttons a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        min-height: 32px;
+    }
+    .content li > a:only-child {
+        display: inline-block;
+        padding-block: 4px;
+    }
+}
