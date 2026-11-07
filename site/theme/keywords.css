@@ -94,3 +94,11 @@
 @media(max-width:1100px){.kw-grid{grid-template-columns:repeat(2,1fr)}.kw-stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:860px){.kw-grid{grid-template-columns:1fr}.kw-cta{grid-template-columns:1fr}}
 @media(max-width:600px){.kw-stats{grid-template-columns:repeat(2,1fr)}}
+/* Mobile first. Keyword cards shrink to the screen instead of their longest code line. */
+.kw-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.kw-grid>*{min-width:0}
+@media(max-width:1100px){.kw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:860px){.kw-grid{grid-template-columns:minmax(0,1fr)}}
+/* The sticky filter bar is 340-540px tall: let it scroll away on tablets, phones and short laptop screens. */
+@media(max-width:1024px),(max-height:820px){.kw-tools{position:static}}
+@media(max-width:1024px){.eyebrow,.stat span,.kw-note b,.search kbd,.seg,.chip,.cat-index,.cat-count,.kw-num,.kw-status,.kw-syntax span,.kw-why span{font-size:11px}.kw-code,.kw-syntax code{font-size:12px}}
+@media(pointer:coarse){.seg,.chip,.result-line button,.header a,footer .links a{min-height:24px;display:inline-flex;align-items:center}}

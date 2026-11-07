@@ -29,7 +29,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/book-5c9b8e5d.css">
+        <link rel="stylesheet" href="theme/book-f2ccc6d4.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6b0967bc.js";
+            window.path_to_searchindex_js = "searchindex-3bbd29cd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -549,7 +549,7 @@ diagnostics to a single machine-readable JSON object on standard error.</p>
 <tr><td><code>ir FILE</code></td><td>Alias for <code>build</code>; print the typed textual IR</td><td><code>0</code></td></tr>
 <tr><td><code>target FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit textual target IR</td><td><code>0</code></td></tr>
 <tr><td><code>qbe FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit experimental QBE IL</td><td><code>0</code></td></tr>
-<tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code</td><td><code>0</code></td></tr>
+<tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code (<code>Result</code> becomes <code>Result&lt;i32, String&gt;</code>)</td><td><code>0</code></td></tr>
 <tr><td><code>new NAME [--lib]</code></td><td>Create a program or library project skeleton</td><td><code>0</code></td></tr>
 <tr><td><code>add NAME[@REQ]</code></td><td>Add a dependency (a version requirement such as <code>^0.2</code>; default: the latest version) to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
 <tr><td><code>remove NAME</code></td><td>Remove a dependency and uninstall it</td><td><code>0</code></td></tr>
