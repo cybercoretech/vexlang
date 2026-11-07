@@ -55,7 +55,9 @@ let p: Point = Point { x: 2, y: 3 };
 p.x + p.y;
 ```
 
-Strings and `print`/`println` are available in the standard library. Arrays
+Strings and `print`/`println` are available in the standard library. `+`
+joins strings, and `string(value)` turns numbers and booleans into text:
+`println("count: " + string(n));`. Arrays
 support literals, nesting, typed annotations such as `[i32]`, zero-based
 indexing, and indexed assignment:
 

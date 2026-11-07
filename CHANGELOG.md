@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `+` joins strings: `"hello, " + name`. It never converts implicitly, so
+  `"n=" + 1` is a type error that suggests the new `string(value)` builtin,
+  which turns `i32`, `u64` and `bool` values into text. The Rust backend
+  emits joins as `format!("{}{}", a, b)` when it can tell an operand is a
+  string (a literal, a `string`-typed or string-initialized variable or
+  parameter, `string(...)`, or a call to a function returning `string`).
+  Strings are still outside the IR/QBE target.
+- Docs: the operator precedence table now matches the parser (`||` < `&&`
+  < `==`/`<`/`>`).
+
 - Module functions are namespaced. Any public function of an imported module
   can be called as `module::function(...)`, so two packages can both define
   `min`, and a program can declare its own `min` next to `use vexstd;`
