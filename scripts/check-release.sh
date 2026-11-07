@@ -22,5 +22,13 @@ esac
 
 grep -F "$version" README.md >/dev/null
 grep -F "$version" CHANGELOG.md >/dev/null
+# Cargo only installs a pre-release when it is named, so the install
+# commands must carry the version being released.
+for file in README.md site/index.html; do
+    grep -F "cargo install vexlang@$version" "$file" >/dev/null || {
+        echo "release check: $file lacks \`cargo install vexlang@$version\`" >&2
+        exit 1
+    }
+done
 cargo package --locked --allow-dirty --list >/dev/null
 echo "release metadata and package contents are consistent for vexlang $version"

@@ -25,14 +25,31 @@ Operators, from lowest to highest precedence, are:
 
 | Precedence | Operators | Meaning |
 | --- | --- | --- |
-| 1 | `&&`, `||`, `==` | Boolean logic and equality |
-| 2 | `<`, `>` | Numeric comparison |
-| 3 | `+`, `-` | Addition and subtraction |
-| 4 | `*`, `/` | Multiplication and division |
-| 5 | unary `-`, `!` | Numeric negation and boolean not |
+| 1 | `||` | Boolean or |
+| 2 | `&&` | Boolean and |
+| 3 | `==`, `<`, `>` | Equality and numeric comparison |
+| 4 | `+`, `-` | Addition and subtraction; `+` also joins strings |
+| 5 | `*`, `/` | Multiplication and division |
+| 6 | unary `-`, `!` | Numeric negation and boolean not |
 
 Parentheses override precedence. `&&` and `||` short-circuit. Arithmetic is
 checked for overflow, and division by zero is a runtime error.
+
+## Strings
+
+`+` joins two strings. It does not convert other values, so turn numbers and
+booleans into text with `string(value)` first:
+
+```vex
+let name = "Vex";
+let count = 3;
+println("hello, " + name + "!");             // hello, Vex!
+println("count: " + string(count));          // count: 3
+println("ready: " + string(count > 2));      // ready: true
+```
+
+`"n=" + 1` is a type error that points you to `string(...)`. `string()`
+accepts `i32`, `u64`, `bool` and `string` values. Strings compare with `==`.
 
 ## Declarations and assignment
 
@@ -47,7 +64,8 @@ index = index + 1;
 
 `i32` values must fit the signed 32-bit range. `u64` values are represented
 separately at runtime and cannot contain negative values. Explicit conversions
-are available as `i32(value)` and `u64(value)`.
+are available as `i32(value)` and `u64(value)`, and `string(value)` turns a
+number or boolean into text.
 
 ## Records
 
@@ -143,7 +161,7 @@ lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
 description = "One line"
 
 [dependencies]
-greeter = "0.1.0"         # exact versions
+greeter = "0.1.0"         # a requirement: ^0.1.0 (`=0.1.0` pins it)
 ```
 
 Use `vexlang project vex.toml` to validate and summarize it. Dependencies are

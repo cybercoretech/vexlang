@@ -43,7 +43,7 @@ STATUS_LABEL = {
 }
 
 STATUS_DETAIL = {
-    "live": "Parses, builds and evaluates in 0.1.0-alpha.2",
+    "live": "Parses, builds and evaluates in 0.1.0-alpha.3",
     "reserved-rule": "Has a grammar rule; the builder rejects it today",
     "reserved-word": "Reserved identifier in the grammar; no syntax yet",
     "proposed": "Proposal only; not reserved in the grammar",
@@ -58,7 +58,11 @@ KW_RE = re.compile(r"^###\s+(\d+)\.\s+`([^`]+)`\s*-\s*(.+?)\s*$")
 def grammar_words() -> set[str]:
     """Every KW_* literal in the grammar, i.e. words that cannot be identifiers."""
     text = GRAMMAR.read_text(encoding="utf-8")
-    return {m.lower() for m in re.findall(r'KW_[A-Z0-9_]+ = _\{ "([a-z0-9_]+)" \}', text)}
+    # `KW_X = _{ &W_X ~ "x" }` (whole-word form) or the older `KW_X = _{ "x" }`.
+    return {
+        m.lower()
+        for m in re.findall(r'KW_[A-Z0-9_]+ = _\{ (?:&W_[A-Z0-9_]+ ~ )?"([a-z0-9_]+)" \}', text)
+    }
 
 
 def parse_proposal(text: str) -> list[dict]:
@@ -334,7 +338,7 @@ def render(data: dict) -> str:
     <div class="stat reserved"><b>{counts['reserved']}</b><span>reserved</span></div>
     <div class="stat proposed"><b>{counts['proposed']}</b><span>proposed</span></div>
   </div>
-  <p class="kw-note"><b>READ THIS FIRST.</b> This page documents a design proposal, not the shipped language. <b class="s-live">LIVE</b> constructs parse, build and evaluate in <code>0.1.0-alpha.2</code>. <b class="s-reserved">RESERVED</b> words have grammar rules but are rejected by the builder. <b class="s-proposed">PROPOSED</b> constructs are reserved words or design ideas with no implementation yet.</p>
+  <p class="kw-note"><b>READ THIS FIRST.</b> This page documents a design proposal, not the shipped language. <b class="s-live">LIVE</b> constructs parse, build and evaluate in <code>0.1.0-alpha.3</code>. <b class="s-reserved">RESERVED</b> words have grammar rules but are rejected by the builder. <b class="s-proposed">PROPOSED</b> constructs are reserved words or design ideas with no implementation yet.</p>
 </section>
 
 <section class="shell kw-tools" aria-label="Filter keywords">
@@ -386,7 +390,7 @@ def render(data: dict) -> str:
     <a href="https://github.com/cybercoretech/vexlang">GitHub ↗</a>
     <a href="docs/index.html">Docs ↗</a>
     <a data-cybercore-master-docs href="https://cybercoretech.github.io/cybercore/docs.html">Master docs ↗</a>
-    <span>MIT · 0.1.0-alpha.2</span>
+    <span>MIT · 0.1.0-alpha.3</span>
   </div>
 </footer>
 

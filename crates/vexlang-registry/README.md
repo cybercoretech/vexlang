@@ -1,7 +1,7 @@
 # vexlang-registry
 
 The package-index client behind the [`vexlang`](https://crates.io/crates/vexlang)
-CLI (`vexlang add | install | remove | search | info | fetch | package | publish | yank`).
+CLI (`vexlang add | install | update | remove | search | info | fetch | package | publish | yank`).
 
 Vex packages are listed in a static Git index,
 [cybercoretech/vex-index](https://github.com/cybercoretech/vex-index): a single
@@ -10,9 +10,11 @@ registry server. This crate provides:
 
 - index loading from `https://`, `file://` or a local path, plus resolve, latest
   (SemVer-like ordering, yanked versions skipped) and search;
+- `req`: Cargo-style version requirements (`^`, `~`, `=`, `*`, comparisons);
 - `install::install`: two-phase dependency installation (resolve and verify into
-  a cache, then apply) with `vex.lock`, `--locked`/`--offline` modes, conflict
-  detection and safe unpacking (no path traversal, links or special files);
+  a cache, then apply) with `vex.lock`, lock-preferring range resolution,
+  `--locked`/`--offline`/update modes, conflict reports and safe unpacking (no
+  path traversal, links or special files);
 - reproducible `NAME-VERSION.tar.gz` packaging, plus `publish` and `yank` for an
   index checkout.
 

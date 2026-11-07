@@ -9,7 +9,7 @@ released under the [MIT license](LICENSE).
 
 [![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![CI](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml/badge.svg)](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml)
-[![Release](https://img.shields.io/badge/release-0.1.0--alpha.2-purple)](https://github.com/cybercoretech/vexlang)
+[![Release](https://img.shields.io/badge/release-0.1.0--alpha.3-purple)](https://github.com/cybercoretech/vexlang)
 
 ## 🛰️ Signal status
 
@@ -55,7 +55,9 @@ let p: Point = Point { x: 2, y: 3 };
 p.x + p.y;
 ```
 
-Strings and `print`/`println` are available in the standard library. Arrays
+Strings and `print`/`println` are available in the standard library. `+`
+joins strings, and `string(value)` turns numbers and booleans into text:
+`println("count: " + string(n));`. Arrays
 support literals, nesting, typed annotations such as `[i32]`, zero-based
 indexing, and indexed assignment:
 
@@ -75,7 +77,14 @@ native executable generation remain deferred.
 
 ## 🧪 Quick start
 
-Run or validate a source file:
+Install the CLI from crates.io. Cargo skips pre-releases unless you name
+one, so plain `cargo install vexlang` finds nothing while Vex is in alpha:
+
+```sh
+cargo install vexlang@0.1.0-alpha.3
+```
+
+From a checkout, run or validate a source file:
 
 ```sh
 cargo run -- run program.vex
@@ -146,7 +155,9 @@ only built for native targets.
 ```sh
 vexlang new app && cd app        # or: vexlang new mylib --lib
 vexlang add greeter              # latest version -> vex.toml, vex.lock, vex_modules/
+vexlang add greeter@^0.2         # or a version requirement
 vexlang install --locked         # CI: reproduce exactly what vex.lock pins
+vexlang update [greeter]         # move locked versions to the newest match
 vexlang remove greeter
 vexlang search greet | vexlang info greeter
 
@@ -155,9 +166,10 @@ vexlang publish --index ../vex-index --url https://.../NAME-VERSION.tar.gz
 vexlang yank NAME@VERSION --index ../vex-index
 ```
 
-- 🔗 **Dependencies:** listed under `[dependencies]` in `vex.toml` with exact
-  versions and resolved transitively. Two versions of one package are a
-  conflict. `vex.lock` pins every URL and hash, and `--offline` installs from
+- 🔗 **Dependencies:** listed under `[dependencies]` in `vex.toml` as
+  Cargo-style requirements (`"0.1.0"` means `^0.1.0`; also `~`, `=`, `*`,
+  `>=1.2, <2`) and resolved transitively to one version per package.
+  `install` keeps locked versions, and `update` moves them. `vex.lock` pins every URL and hash, and `--offline` installs from
   the lock and the download cache.
 - 🧾 **Integrity:** every tarball's size and SHA-256 are verified before
   anything is unpacked. Archives with paths outside the package, links or
@@ -165,7 +177,7 @@ vexlang yank NAME@VERSION --index ../vex-index
 - 🧊 **Immutability:** published versions can't be overwritten. Yanked
   versions are skipped by `add` but stay installable from an existing lock.
 - 🔒 **HTTPS-only** tarball URLs. 🛑 **Validated names and versions**
-  (letters, digits, `.`, `_`, `-`, `+`).
+  (letters, digits, `.`, `_`, `-`, `+`; requirements are parsed strictly).
 - 🌐 **Index location:** `--index`, then `$VEX_INDEX`, then the vex-index
   raw URL. A local checkout directory or an `index.json` path works too.
 
@@ -179,7 +191,10 @@ vexlang yank NAME@VERSION --index ../vex-index
   `bool`, `unit`, declared function calls, locals, structured control flow,
   loop control, returns, and checked scalar arithmetic.
 - `rust` emits standalone Rust source code supporting records, enums, arrays,
-  match expressions, functions, loops, and results, which compiles directly with `rustc`.
+  match expressions, functions, loops, results, string joins and module
+  functions, which compiles directly with `rustc`. Vex's untyped `Result`
+  becomes `VexResult`, an alias for `Result<i32, String>`, so `Ok` values
+  must be `i32` and errors strings in programs you transpile.
 - Interpreter features such as strings, `u64`, records, arrays, maps, enums,
   `Result`, and I/O builtins are rejected at the `vex-scalar-v1` target
   boundary until their runtime ABI is specified.
@@ -263,7 +278,7 @@ The complete [Vex mdBook documentation](docs/src/intro.md) includes the
 
 ## 📦 Public alpha release checklist
 
-Current release: `0.1.0-alpha.2`.
+Current release: `0.1.0-alpha.3`.
 
 The package version is declared in `Cargo.toml` and exposed by
 `vexlang --version`. Before publishing a tagged alpha, run:

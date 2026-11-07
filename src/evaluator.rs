@@ -436,6 +436,16 @@ fn eval_expr(x: &Expr, e: &mut Env, f: &Functions, d: usize) -> Result<Control, 
                 }
                 return Ok(Control::Value(Value::Unit));
             }
+            if n == "string" {
+                return match vals.as_slice() {
+                    [v @ (Value::Int(_) | Value::U64(_) | Value::Bool(_) | Value::String(_))] => {
+                        Ok(Control::Value(Value::String(display(v))))
+                    }
+                    _ => Err(EvalError::TypeError(
+                        "string() converts i32, u64, bool and string values".into(),
+                    )),
+                };
+            }
             if n == "i32" {
                 return Ok(Control::Value(Value::Int(to_i32(&vals[0])? as i64)));
             }
@@ -644,6 +654,7 @@ fn bin(a: Value, o: &Op, b: Value) -> Result<Control, EvalError> {
             .checked_add(y)
             .map(|v| Control::Value(Value::Int(v)))
             .ok_or_else(|| EvalError::RuntimeError("integer overflow".into())),
+        (Value::String(x), Op::Add, Value::String(y)) => Ok(Control::Value(Value::String(x + &y))),
         (Value::Int(x), Op::Sub, Value::Int(y)) => x
             .checked_sub(y)
             .map(|v| Control::Value(Value::Int(v)))

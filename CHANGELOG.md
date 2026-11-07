@@ -2,6 +2,62 @@
 
 ## Unreleased
 
+- Rust backend: `Result` annotations (parameters, return types, lets) now
+  compile. Vex's `Result` has untyped payloads, so generated code declares
+  `type VexResult<T = i32, E = String> = Result<T, E>` (only when it's used)
+  and maps `Result` to it. `?` in `main` still converts the error.
+  vexstd's `unwrap_or`/`is_ok`/`is_err` now transpile, and its whole test
+  suite compiles and passes as Rust. Generated code also allows
+  `non_snake_case`, for the `module__function` names.
+- New `tests/rust_backend.rs` transpiles sample programs (Result/`?`,
+  string joins, namespaced modules), compiles them with `rustc` and checks
+  that the output and the interpreter's agree, with no rustc warnings.
+
+## 0.1.0-alpha.3 (2026-11-06)
+
+Highlights: module functions are namespaced (`vexstd::clamp(...)`), `+`
+joins strings, and dependencies take Cargo-style version ranges, with a new
+`vexlang update`. Published with `vexlang-registry` 0.2.0, which has
+breaking API changes.
+
+**Upgrade notes:** a bare dependency version (`"0.1.0"`) now means
+`^0.1.0`, so use `=0.1.0` to pin exactly. With `export`s, a glob `use` now
+imports only exported functions. Packages whose own `vex.toml` uses range
+syntax need vexlang 0.1.0-alpha.3 or later to install.
+
+- The `site/keywords.html` generator recognizes the whole-word keyword rules
+  from 0.1.0-alpha.2 again. Without that, regenerating the page would have
+  shown 49 reserved words as merely proposed.
+
+- Version ranges. `[dependencies]` values are now Cargo-style requirements:
+  `"0.1.0"` means `^0.1.0` (any compatible version), plus `~1.2`, `=1.2.3`,
+  `1.*`, `*` and comma-joined comparisons such as `>=1.2, <2`. Pre-releases
+  only match when the requirement names one. **Behavior change:** a bare
+  version used to be exact, so write `=0.1.0` to keep that. Existing
+  projects keep their `vex.lock` versions until you update them.
+- The resolver keeps the version `vex.lock` pins while it still fits,
+  otherwise it picks the newest non-yanked match, with one version per
+  package across the tree (re-picking shared dependencies when a later
+  requirement rules out an earlier choice). Conflicts list each requirement
+  and who declared it.
+- New `vexlang update [NAME]` moves locked versions to the newest match.
+  `install` never upgrades on its own, and `install`/`update` print
+  `updated NAME OLD -> NEW`. `vexlang add NAME@REQ` accepts requirements.
+- `vexlang-registry`: new `req` module (`Version`, `VersionReq`).
+  `InstallOptions` gains `update` (and is no longer `Copy`), and
+  `InstallReport` gains `changed`. This is a breaking API change, so the
+  crate's next release is 0.2.0.
+
+- `+` joins strings: `"hello, " + name`. It never converts implicitly, so
+  `"n=" + 1` is a type error that suggests the new `string(value)` builtin,
+  which turns `i32`, `u64` and `bool` values into text. The Rust backend
+  emits joins as `format!("{}{}", a, b)` when it can tell an operand is a
+  string (a literal, a `string`-typed or string-initialized variable or
+  parameter, `string(...)`, or a call to a function returning `string`).
+  Strings are still outside the IR/QBE target.
+- Docs: the operator precedence table now matches the parser (`||` < `&&`
+  < `==`/`<`/`>`).
+
 - Module functions are namespaced. Any public function of an imported module
   can be called as `module::function(...)`, so two packages can both define
   `min`, and a program can declare its own `min` next to `use vexstd;`

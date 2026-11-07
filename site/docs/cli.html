@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-970c2591.js";
+            window.path_to_searchindex_js = "searchindex-3bbd29cd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -198,11 +198,12 @@ diagnostics to a single machine-readable JSON object on standard error.</p>
 <tr><td><code>ir FILE</code></td><td>Alias for <code>build</code>; print the typed textual IR</td><td><code>0</code></td></tr>
 <tr><td><code>target FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit textual target IR</td><td><code>0</code></td></tr>
 <tr><td><code>qbe FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit experimental QBE IL</td><td><code>0</code></td></tr>
-<tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code</td><td><code>0</code></td></tr>
+<tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code (<code>Result</code> becomes <code>Result&lt;i32, String&gt;</code>)</td><td><code>0</code></td></tr>
 <tr><td><code>new NAME [--lib]</code></td><td>Create a program or library project skeleton</td><td><code>0</code></td></tr>
-<tr><td><code>add NAME[@VER]</code></td><td>Add a dependency to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
+<tr><td><code>add NAME[@REQ]</code></td><td>Add a dependency (a version requirement such as <code>^0.2</code>; default: the latest version) to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
 <tr><td><code>remove NAME</code></td><td>Remove a dependency and uninstall it</td><td><code>0</code></td></tr>
-<tr><td><code>install [--locked] [--offline]</code></td><td>Install <code>vex.toml</code> dependencies into <code>vex_modules/</code>, keeping <code>vex.lock</code></td><td><code>0</code></td></tr>
+<tr><td><code>install [--locked] [--offline]</code></td><td>Install <code>vex.toml</code> dependencies into <code>vex_modules/</code>, keeping the versions <code>vex.lock</code> pins</td><td><code>0</code></td></tr>
+<tr><td><code>update [NAME]</code></td><td>Re-resolve all (or one) locked versions to the newest that match <code>vex.toml</code></td><td><code>0</code></td></tr>
 <tr><td><code>search [TERM]</code>, <code>info NAME</code></td><td>Browse the package index</td><td><code>0</code></td></tr>
 <tr><td><code>fetch NAME@VER [--out DIR]</code></td><td>Download and verify one package tarball</td><td><code>0</code></td></tr>
 <tr><td><code>package [vex.toml]</code></td><td>Build a reproducible <code>dist/NAME-VERSION.tar.gz</code></td><td><code>0</code></td></tr>

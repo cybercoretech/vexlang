@@ -549,6 +549,19 @@ impl SemanticAnalyzer {
                     self.check_expr(&args[0], scope, loops, ret)?;
                     return Ok(Type::Unit);
                 }
+                if n == "string" {
+                    if args.len() != 1 {
+                        return Err("string expects one argument".into());
+                    }
+                    let t = self.check_expr(&args[0], scope, loops, ret)?;
+                    if !matches!(
+                        t,
+                        Type::I32 | Type::U64 | Type::Bool | Type::String | Type::Inferred
+                    ) {
+                        return Err("string() converts i32, u64, bool and string values".into());
+                    }
+                    return Ok(Type::String);
+                }
                 if matches!(n.as_str(), "i32" | "u64") {
                     if args.len() != 1 {
                         return Err(format!("{n} expects one argument"));
@@ -589,6 +602,14 @@ impl SemanticAnalyzer {
                             Ok(Type::Bool)
                         } else {
                             Err("comparison operands must have compatible types".into())
+                        }
+                    }
+                    Op::Add if x == Type::String || y == Type::String => {
+                        if Self::compatible(&x, &y) {
+                            Ok(Type::String)
+                        } else {
+                            Err("`+` joins two strings; convert the other operand with `string(...)`"
+                                .into())
                         }
                     }
                     _ => {
