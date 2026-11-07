@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#080d15">
-<meta name="description" content="VexLang is a small experimental programming language, typed-IR prototype and package ecosystem from Cybercore. Install with cargo install vexlang.">
+<meta name="description" content="VexLang is a small experimental programming language, typed-IR prototype and package ecosystem from Cybercore. Install with cargo install vexlang@0.1.0-alpha.3.">
 <title>VexLang // Small language. Sharp edges.</title>
 <link rel="icon" type="image/svg+xml" href="assets/vex-mark-grid.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
@@ -243,12 +243,12 @@ vexlang info vexstd</pre></div></div></section>
   </div>
   <div class="milestone-item">
     <strong style="color:var(--cyan);font-family:var(--mono);">Milestone 14: Ecosystem & Tooling (In progress)</strong>
-    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">Done: <code>use</code> resolution, <code>[dependencies]</code> with <code>vex.lock</code>, verified installs, the static <a href="https://github.com/cybercoretech/vex-index">vex-index</a>, the first package <a href="https://github.com/cybercoretech/vexstd">vexstd</a>, <code>cargo install vexlang</code> from crates.io, namespaced module functions (<code>m::f()</code>), string <code>+</code>, and version ranges with <code>vexlang update</code>. Next: <code>Result</code> in the Rust backend, LSP/editor integration, and a formatter.</p>
+    <p style="color:var(--muted);font-size:.9rem;margin:.4rem 0 0;">Done: <code>use</code> resolution, <code>[dependencies]</code> with <code>vex.lock</code>, verified installs, the static <a href="https://github.com/cybercoretech/vex-index">vex-index</a>, the first package <a href="https://github.com/cybercoretech/vexstd">vexstd</a>, releases on crates.io, namespaced module functions (<code>m::f()</code>), string <code>+</code>, and version ranges with <code>vexlang update</code>. Next: <code>Result</code> in the Rust backend, LSP/editor integration, and a formatter.</p>
   </div>
 </div>
 </section>
-<section class="shell section"><div class="section-kicker">// alpha boundary</div><h2>Prototype openly. Promise precisely.</h2><div class="alpha"><div class="notice"><h3>VEX IS ALPHA SOFTWARE</h3><p>It is not a production compiler or native toolchain yet. QBE emits intermediate language only; it does not assemble, link, or package a native executable. Syntax and APIs may evolve.</p></div><div class="commands"><pre><span class="comment"># install from crates.io</span>
-cargo install vexlang
+<section class="shell section"><div class="section-kicker">// alpha boundary</div><h2>Prototype openly. Promise precisely.</h2><div class="alpha"><div class="notice"><h3>VEX IS ALPHA SOFTWARE</h3><p>It is not a production compiler or native toolchain yet. QBE emits intermediate language only; it does not assemble, link, or package a native executable. Syntax and APIs may evolve.</p></div><div class="commands"><pre><span class="comment"># install from crates.io (alpha releases must be named)</span>
+cargo install vexlang@0.1.0-alpha.3
 <span class="comment"># try the interpreter</span>
 vexlang run program.vex
 <span class="comment"># inspect the typed lowering</span>
