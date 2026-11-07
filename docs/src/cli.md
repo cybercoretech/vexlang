@@ -22,9 +22,10 @@ diagnostics to a single machine-readable JSON object on standard error.
 | `qbe FILE` | Validate against `vex-scalar-v1` and emit experimental QBE IL | `0` |
 | `rust FILE` | Validate and transpile the program to standalone Rust source code | `0` |
 | `new NAME [--lib]` | Create a program or library project skeleton | `0` |
-| `add NAME[@VER]` | Add a dependency to `vex.toml` and install it | `0` |
+| `add NAME[@REQ]` | Add a dependency (a version requirement such as `^0.2`; default: the latest version) to `vex.toml` and install it | `0` |
 | `remove NAME` | Remove a dependency and uninstall it | `0` |
-| `install [--locked] [--offline]` | Install `vex.toml` dependencies into `vex_modules/`, keeping `vex.lock` | `0` |
+| `install [--locked] [--offline]` | Install `vex.toml` dependencies into `vex_modules/`, keeping the versions `vex.lock` pins | `0` |
+| `update [NAME]` | Re-resolve all (or one) locked versions to the newest that match `vex.toml` | `0` |
 | `search [TERM]`, `info NAME` | Browse the package index | `0` |
 | `fetch NAME@VER [--out DIR]` | Download and verify one package tarball | `0` |
 | `package [vex.toml]` | Build a reproducible `dist/NAME-VERSION.tar.gz` | `0` |

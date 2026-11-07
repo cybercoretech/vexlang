@@ -9,7 +9,8 @@
 //! description = "One line"
 //!
 //! [dependencies]
-//! mathx = "0.2.0"              # exact versions
+//! mathx = "0.2.0"              # a requirement: ^0.2.0 (see `vexlang_registry::req`)
+//! strs = "=1.0.0"              # exactly 1.0.0
 //! ```
 //!
 //! The `[project]` header is optional for backwards compatibility. Only this
@@ -51,6 +52,20 @@ fn section_of(line: &str) -> Option<Result<Section, String>> {
         "dependencies" => Ok(Section::Dependencies),
         other => Err(format!("unknown section `[{other}]`")),
     })
+}
+
+/// Characters a version requirement may use (`^0.1`, `>=1.2, <2`, `1.*`).
+/// The full grammar is checked when installing.
+fn valid_requirement(value: &str) -> bool {
+    !value.trim().is_empty()
+        && value.len() <= 128
+        && value.chars().all(|c| {
+            c.is_ascii_alphanumeric()
+                || matches!(
+                    c,
+                    '.' | '-' | '+' | '^' | '~' | '=' | '<' | '>' | ',' | '*' | ' '
+                )
+        })
 }
 
 fn valid_component(value: &str) -> bool {
@@ -97,8 +112,10 @@ pub fn parse(text: &str) -> Result<ProjectConfig, String> {
                 if !valid_component(key) {
                     return Err(format!("invalid dependency name `{key}`"));
                 }
-                if !valid_component(&value) {
-                    return Err(format!("invalid version `{value}` for dependency `{key}`"));
+                if !valid_requirement(&value) {
+                    return Err(format!(
+                        "invalid version requirement `{value}` for dependency `{key}`"
+                    ));
                 }
                 if dependencies.insert(key.to_string(), value).is_some() {
                     return Err(format!("dependency `{key}` is listed twice"));

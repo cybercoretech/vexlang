@@ -31,6 +31,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub mod install;
+pub mod req;
 
 /// Index used when neither `--index` nor `VEX_INDEX` is given.
 pub const DEFAULT_INDEX: &str =

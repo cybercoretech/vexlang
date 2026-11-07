@@ -161,7 +161,7 @@ lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
 description = "One line"
 
 [dependencies]
-greeter = "0.1.0"         # exact versions
+greeter = "0.1.0"         # a requirement: ^0.1.0 (`=0.1.0` pins it)
 ```
 
 Use `vexlang project vex.toml` to validate and summarize it. Dependencies are

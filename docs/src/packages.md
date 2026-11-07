@@ -63,8 +63,11 @@ version. There is no registry server and no login.
 
 ```sh
 vexlang new app && cd app
-vexlang add greeter            # latest non-yanked version, or greeter@0.1.0
+vexlang add greeter            # latest non-yanked version, written as "0.1.0" (= ^0.1.0)
+vexlang add greeter@~0.1       # or any requirement (see below)
 vexlang install                # after cloning: install what vex.toml lists
+vexlang update                 # move every locked version to the newest match
+vexlang update greeter         # ...or just this one
 vexlang install --locked       # CI: fail if vex.lock would change
 vexlang install --offline      # use only vex.lock and the download cache
 vexlang remove greeter
@@ -72,7 +75,7 @@ vexlang search greet
 vexlang info greeter
 ```
 
-`vex.toml` lists exact versions:
+`vex.toml` lists version requirements, with the same meaning as in Cargo:
 
 ```toml
 [project]
@@ -80,12 +83,32 @@ name = "app"
 version = "0.1.0"
 
 [dependencies]
-greeter = "0.1.0"
+greeter = "0.1.0"        # ^0.1.0: >=0.1.0, <0.2.0
+strs = "^1.2"            # >=1.2.0, <2.0.0
+pinned = "=2.0.1"        # exactly 2.0.1
 ```
 
-`install` resolves dependencies transitively, using the dependencies each
-package declares in its own `vex.toml`. Two different versions of one package
-anywhere in the tree are a conflict. Every tarball is checked against its
+| Requirement | Matches |
+| --- | --- |
+| `1.2.3`, `^1.2.3` | `>=1.2.3, <2.0.0` |
+| `^0.2.3` | `>=0.2.3, <0.3.0` (below 1.0 the minor version is the breaking one) |
+| `^0.0.3` | `>=0.0.3, <0.0.4` |
+| `~1.2.3`, `~1.2` | `>=1.2.3, <1.3.0` / `>=1.2.0, <1.3.0` |
+| `=1.2.3` | exactly `1.2.3` |
+| `1.2.*`, `1.*`, `*` | any version with that prefix |
+| `>=1.2, <1.5` | all comma-separated comparators (`>`, `>=`, `<`, `<=`, `=`) |
+
+Pre-releases such as `1.3.0-rc.1` only match a requirement that names a
+pre-release of the same version (`^1.3.0-rc.1`), so ranges never pick one up
+by accident.
+
+`install` resolves dependencies transitively, using the requirements each
+package declares in its own `vex.toml`. Each package gets the version
+`vex.lock` already pins, as long as that still satisfies every requirement;
+otherwise it gets the newest non-yanked version that does. So `install` never
+upgrades on its own, and `update` does. There is one version of each package
+in the whole tree. If two packages need incompatible versions of a third,
+that's a conflict that lists who needs what. Every tarball is checked against its
 size and SHA-256 before anything is unpacked into `vex_modules/NAME/`.
 Archives with paths outside the package, links or special files are refused.
 `vex.lock` pins the URL and hash of every package. Commit `vex.lock`, and add

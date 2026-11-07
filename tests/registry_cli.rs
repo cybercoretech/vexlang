@@ -294,3 +294,47 @@ fn rejects_path_traversal_and_usage_errors() {
     let out = vex(&w.root, &["install"]);
     assert!(text(&out).contains("vexlang new"), "{}", text(&out));
 }
+
+#[test]
+fn ranges_add_and_update() {
+    let w = World::new("ranges");
+    w.publish("lib1", "1.0.0", &[], "fn v() -> i32 { 10 }\n");
+    w.publish("lib1", "2.0.0", &[], "fn v() -> i32 { 20 }\n");
+    let idx = w.index_arg();
+    let app = w.app();
+    let out = ok(&app, &["add", "lib1@^1", "--index", idx]);
+    assert!(
+        out.contains("installed lib1@1.0.0") && out.contains("added lib1 = \"^1\""),
+        "{out}"
+    );
+    w.publish("lib1", "1.4.0", &[], "fn v() -> i32 { 14 }\n");
+    // install keeps the lock; update moves within the range, not to 2.0.0.
+    let out = ok(&app, &["install", "--index", idx]);
+    assert!(!out.contains("updated"), "{out}");
+    let out = ok(&app, &["update", "--index", idx]);
+    assert!(out.contains("updated   lib1 1.0.0 -> 1.4.0"), "{out}");
+    fs::write(app.join("src/main.vex"), "use lib1;\nprintln(v());\n").unwrap();
+    assert_eq!(
+        ok(&app, &["run", "src/main.vex"]).lines().next(),
+        Some("14")
+    );
+    ok(&app, &["install", "--locked", "--index", idx]);
+
+    let out = vex(&app, &["update", "ghost", "--index", idx]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out).contains("not a dependency"), "{}", text(&out));
+    let out = vex(&app, &["add", "lib1@>>1", "--index", idx]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out).contains("invalid"), "{}", text(&out));
+    let out = vex(&app, &["add", "lib1@^5", "--index", idx]);
+    assert!(
+        text(&out).contains("no version of `lib1` satisfies"),
+        "{}",
+        text(&out)
+    );
+    assert!(
+        fs::read_to_string(app.join("vex.toml"))
+            .unwrap()
+            .contains("lib1 = \"^1\"")
+    );
+}

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Version ranges. `[dependencies]` values are now Cargo-style requirements:
+  `"0.1.0"` means `^0.1.0` (any compatible version), plus `~1.2`, `=1.2.3`,
+  `1.*`, `*` and comma-joined comparisons such as `>=1.2, <2`. Pre-releases
+  only match when the requirement names one. **Behavior change:** a bare
+  version used to be exact, so write `=0.1.0` to keep that. Existing
+  projects keep their `vex.lock` versions until you update them.
+- The resolver keeps the version `vex.lock` pins while it still fits,
+  otherwise it picks the newest non-yanked match, with one version per
+  package across the tree (re-picking shared dependencies when a later
+  requirement rules out an earlier choice). Conflicts list each requirement
+  and who declared it.
+- New `vexlang update [NAME]` moves locked versions to the newest match.
+  `install` never upgrades on its own, and `install`/`update` print
+  `updated NAME OLD -> NEW`. `vexlang add NAME@REQ` accepts requirements.
+- `vexlang-registry`: new `req` module (`Version`, `VersionReq`).
+  `InstallOptions` gains `update` (and is no longer `Copy`), and
+  `InstallReport` gains `changed`. This is a breaking API change, so the
+  crate's next release is 0.2.0.
+
 - `+` joins strings: `"hello, " + name`. It never converts implicitly, so
   `"n=" + 1` is a type error that suggests the new `string(value)` builtin,
   which turns `i32`, `u64` and `bool` values into text. The Rust backend

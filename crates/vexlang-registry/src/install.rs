@@ -3,12 +3,18 @@
 //! `install` works in two phases so a failure never leaves a half-updated
 //! project:
 //!
-//! 1. **Resolve.** Starting from the manifest's dependencies, pin each
-//!    `name@version` (from `vex.lock` when it is already locked, else from the
-//!    index), fetch its tarball into `vex_modules/.cache/` (verifying size and
-//!    SHA-256), read the package's own `vex.toml` straight from the tarball and
-//!    queue its dependencies. Versions are exact; two different versions of
-//!    one package anywhere in the tree are a conflict.
+//! 1. **Resolve.** Dependencies are version requirements (see [`crate::req`]):
+//!    `"0.1.0"` means `^0.1.0`. Starting from the manifest, each package gets
+//!    the version `vex.lock` already pins if it still satisfies every
+//!    requirement seen so far (unless it is being updated), otherwise the
+//!    newest non-yanked matching version in the index. Its tarball is fetched
+//!    into `vex_modules/.cache/` (verifying size and SHA-256), and the
+//!    package's own `vex.toml` is read straight from the tarball to queue its
+//!    dependencies. Each package has one version in the whole tree: if a
+//!    later requirement rules out an earlier choice, the package is
+//!    re-picked to satisfy all of them and resolution starts over. If no
+//!    version satisfies all of them, that's a conflict that lists who needs
+//!    what.
 //! 2. **Apply.** With `--locked`, stop if the result differs from `vex.lock`.
 //!    Otherwise unpack changed packages into `vex_modules/NAME/` (staged, then
 //!    renamed), remove packages that are no longer needed, and write `vex.lock`.
@@ -20,6 +26,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
+use crate::req::{Version, VersionReq};
 use crate::{
     Index, MAX_TARBALL_BYTES, VersionEntry, fetch, load_index, sha256_hex, validate_component,
 };
@@ -79,12 +86,36 @@ fn write_lock(root: &Path, lock: &Lock) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone)]
 pub struct InstallOptions {
     /// Fail instead of changing `vex.lock`.
     pub locked: bool,
     /// Use only `vex.lock` and the download cache; never touch the network.
     pub offline: bool,
+    /// Ignore the versions `vex.lock` pins and take the newest matching ones.
+    pub update: Update,
+}
+
+/// Which locked versions `install` may move away from.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum Update {
+    /// Keep every locked version that still satisfies its requirements.
+    #[default]
+    Nothing,
+    /// Re-resolve everything (`vexlang update`).
+    All,
+    /// Re-resolve these packages only (`vexlang update NAME...`).
+    Only(BTreeSet<String>),
+}
+
+impl Update {
+    fn includes(&self, name: &str) -> bool {
+        match self {
+            Update::Nothing => false,
+            Update::All => true,
+            Update::Only(names) => names.contains(name),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -95,10 +126,14 @@ pub struct InstallReport {
     pub unchanged: Vec<String>,
     /// Package directories removed because nothing needs them any more.
     pub removed: Vec<String>,
+    /// `(name, old version, new version)` for packages whose locked version
+    /// changed.
+    pub changed: Vec<(String, String, String)>,
     pub lock_changed: bool,
 }
 
-/// Parses a package's `vex.toml` text into its dependencies.
+/// Parses a package's `vex.toml` text into its dependencies
+/// (name -> version requirement).
 pub type ManifestDeps<'a> = &'a dyn Fn(&str) -> Result<BTreeMap<String, String>>;
 
 struct Resolved {
@@ -108,7 +143,185 @@ struct Resolved {
     dependencies: Vec<String>,
 }
 
-/// Installs `deps` (name -> exact version) and their dependencies into
+/// A fetched package: its index entry, cached tarball and dependencies.
+struct Fetched {
+    entry: VersionEntry,
+    tarball: PathBuf,
+    deps: BTreeMap<String, String>,
+}
+
+/// How many times resolution may start over before giving up.
+const MAX_ROUNDS: usize = 64;
+
+struct Resolver<'a> {
+    index_location: &'a str,
+    index: Option<Index>,
+    locked: BTreeMap<String, LockedPackage>,
+    options: &'a InstallOptions,
+    cache: PathBuf,
+    read_deps: ManifestDeps<'a>,
+    fetched: BTreeMap<(String, String), Fetched>,
+}
+
+impl Resolver<'_> {
+    fn index(&mut self) -> Result<&Index> {
+        if self.index.is_none() {
+            self.index = Some(load_index(self.index_location)?);
+        }
+        Ok(self.index.as_ref().unwrap())
+    }
+
+    /// Picks a version of `name` that satisfies `reqs`: `preferred` (a
+    /// version chosen in an earlier round), then the locked one, then the
+    /// newest non-yanked match in the index.
+    fn choose(
+        &mut self,
+        name: &str,
+        reqs: &[(VersionReq, String)],
+        preferred: Option<&str>,
+    ) -> Result<String> {
+        let fits = |version: &str| {
+            Version::parse(version).is_ok_and(|v| reqs.iter().all(|(r, _)| r.matches(&v)))
+        };
+        if let Some(version) = preferred.filter(|v| fits(v)) {
+            return Ok(version.to_string());
+        }
+        if !self.options.update.includes(name) {
+            if let Some(locked) = self.locked.get(name).filter(|p| fits(&p.version)) {
+                return Ok(locked.version.clone());
+            }
+        }
+        let wanted = describe(reqs);
+        if self.options.offline {
+            bail!(
+                "vex.lock has no version of `{name}` that satisfies {wanted}, and --offline was given"
+            );
+        }
+        let package = self
+            .index()?
+            .packages
+            .get(name)
+            .with_context(|| format!("package `{name}` is not in the index"))?;
+        let best = package
+            .versions
+            .iter()
+            .filter(|(version, entry)| !entry.yanked && fits(version))
+            .max_by(|(a, _), (b, _)| crate::compare_versions(a, b));
+        match best {
+            Some((version, _)) => Ok(version.clone()),
+            None => {
+                let available: Vec<&str> = package
+                    .versions
+                    .iter()
+                    .filter(|(_, e)| !e.yanked)
+                    .map(|(v, _)| v.as_str())
+                    .collect();
+                bail!(
+                    "no version of `{name}` satisfies {wanted} (available: {})",
+                    if available.is_empty() {
+                        "none".to_string()
+                    } else {
+                        available.join(", ")
+                    }
+                )
+            }
+        }
+    }
+
+    /// Fetches `name@version` (cached) and reads its dependencies.
+    fn fetch(&mut self, name: &str, version: &str) -> Result<&Fetched> {
+        let key = (name.to_string(), version.to_string());
+        if !self.fetched.contains_key(&key) {
+            let entry = match self.locked.get(name).filter(|p| p.version == version) {
+                Some(p) => VersionEntry {
+                    url: p.url.clone(),
+                    sha256: p.sha256.clone(),
+                    size: p.size,
+                    yanked: false,
+                },
+                None => self.index()?.resolve(name, version)?.clone(),
+            };
+            let tarball = self.cache.join(format!("{name}-{version}.tar.gz"));
+            let bytes = cached_or_fetch(&tarball, &entry, name, version, self.options.offline)?;
+            let deps = match manifest_from_tarball(&bytes, name, version)? {
+                Some(text) => (self.read_deps)(&text)
+                    .with_context(|| format!("invalid vex.toml in {name}@{version}"))?,
+                None => BTreeMap::new(),
+            };
+            self.fetched.insert(
+                key.clone(),
+                Fetched {
+                    entry,
+                    tarball,
+                    deps,
+                },
+            );
+        }
+        Ok(&self.fetched[&key])
+    }
+
+    /// Resolves the whole tree: name -> version.
+    fn resolve(&mut self, deps: &BTreeMap<String, String>) -> Result<BTreeMap<String, String>> {
+        let mut picks: BTreeMap<String, String> = BTreeMap::new();
+        for _ in 0..MAX_ROUNDS {
+            let mut reqs: BTreeMap<String, Vec<(VersionReq, String)>> = BTreeMap::new();
+            let mut chosen: BTreeMap<String, String> = BTreeMap::new();
+            let mut queue: VecDeque<(String, String, String)> = deps
+                .iter()
+                .map(|(n, v)| (n.clone(), v.clone(), "vex.toml".to_string()))
+                .collect();
+            while let Some((name, text, from)) = queue.pop_front() {
+                validate_component("name", &name)?;
+                let req = VersionReq::parse(&text)
+                    .with_context(|| format!("{from}: dependency `{name}`"))?;
+                let these = reqs.entry(name.clone()).or_default();
+                these.push((req, from));
+                if chosen.contains_key(&name) {
+                    continue;
+                }
+                let these = these.clone();
+                let version = self.choose(&name, &these, picks.get(&name).map(String::as_str))?;
+                let here = format!("{name}@{version}");
+                for (dep, dep_req) in &self.fetch(&name, &version)?.deps {
+                    queue.push_back((dep.clone(), dep_req.clone(), here.clone()));
+                }
+                chosen.insert(name, version);
+            }
+            let mut settled = true;
+            for (name, version) in &chosen {
+                let all = &reqs[name];
+                let parsed = Version::parse(version)?;
+                if all.iter().all(|(r, _)| r.matches(&parsed)) {
+                    continue;
+                }
+                let better = self.choose(name, all, None).map_err(|error| {
+                    anyhow::anyhow!(
+                        "version conflict for `{name}`: {}\n{error}",
+                        all.iter()
+                            .map(|(r, from)| format!("{from} needs {name} {r}"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                })?;
+                picks.insert(name.clone(), better);
+                settled = false;
+            }
+            if settled {
+                return Ok(chosen);
+            }
+        }
+        bail!("dependency versions did not settle after {MAX_ROUNDS} rounds")
+    }
+}
+
+fn describe(reqs: &[(VersionReq, String)]) -> String {
+    reqs.iter()
+        .map(|(r, from)| format!("`{r}` ({from})"))
+        .collect::<Vec<_>>()
+        .join(" and ")
+}
+
+/// Installs `deps` (name -> version requirement) and their dependencies into
 /// `root/vex_modules`, keeping `root/vex.lock` in sync.
 pub fn install(
     root: &Path,
@@ -120,74 +333,35 @@ pub fn install(
     let modules = root.join(MODULES_DIR);
     let cache = modules.join(CACHE_DIR);
     let old_lock = read_lock(root)?;
-    let locked: BTreeMap<(String, String), LockedPackage> = old_lock
-        .iter()
-        .flat_map(|lock| lock.packages.iter())
-        .map(|p| ((p.name.clone(), p.version.clone()), p.clone()))
-        .collect();
-
-    let mut index: Option<Index> = None;
-    let mut resolved: BTreeMap<String, Resolved> = BTreeMap::new();
-    let mut requested_by: BTreeMap<String, String> = BTreeMap::new();
-    let mut queue: VecDeque<(String, String, String)> = deps
-        .iter()
-        .map(|(n, v)| (n.clone(), v.clone(), "vex.toml".to_string()))
-        .collect();
 
     // Phase 1: resolve and fetch into the cache.
-    while let Some((name, version, from)) = queue.pop_front() {
-        validate_component("name", &name)?;
-        validate_component("version", &version)?;
-        if let Some(existing) = resolved.get(&name) {
-            if existing.version != version {
-                bail!(
-                    "version conflict for `{name}`: {} needs {name}@{}, {from} needs {name}@{version}",
-                    requested_by[&name],
-                    existing.version
-                );
-            }
-            continue;
-        }
-        let entry = match locked.get(&(name.clone(), version.clone())) {
-            Some(p) => VersionEntry {
-                url: p.url.clone(),
-                sha256: p.sha256.clone(),
-                size: p.size,
-                yanked: false,
-            },
-            None => {
-                if options.offline {
-                    bail!("{name}@{version} is not in vex.lock and --offline was given");
-                }
-                if index.is_none() {
-                    index = Some(load_index(index_location)?);
-                }
-                index.as_ref().unwrap().resolve(&name, &version)?.clone()
-            }
-        };
-        let tarball = cache.join(format!("{name}-{version}.tar.gz"));
-        let bytes = cached_or_fetch(&tarball, &entry, &name, &version, options.offline)?;
-        let manifest = manifest_from_tarball(&bytes, &name, &version)?;
-        let package_deps = match manifest {
-            Some(text) => {
-                read_deps(&text).with_context(|| format!("invalid vex.toml in {name}@{version}"))?
-            }
-            None => BTreeMap::new(),
-        };
-        let here = format!("{name}@{version}");
-        for (dep, dep_version) in &package_deps {
-            queue.push_back((dep.clone(), dep_version.clone(), here.clone()));
-        }
-        requested_by.insert(name.clone(), from);
+    let mut resolver = Resolver {
+        index_location,
+        index: None,
+        locked: old_lock
+            .iter()
+            .flat_map(|lock| lock.packages.iter())
+            .map(|p| (p.name.clone(), p.clone()))
+            .collect(),
+        options: &options,
+        cache: cache.clone(),
+        read_deps,
+        fetched: BTreeMap::new(),
+    };
+    let chosen = resolver.resolve(deps)?;
+    let mut resolved: BTreeMap<String, Resolved> = BTreeMap::new();
+    for (name, version) in &chosen {
+        let fetched = resolver.fetch(name, version)?;
         resolved.insert(
-            name,
+            name.clone(),
             Resolved {
-                version,
-                entry,
-                tarball,
-                dependencies: package_deps
-                    .iter()
-                    .map(|(n, v)| format!("{n}@{v}"))
+                version: version.clone(),
+                entry: fetched.entry.clone(),
+                tarball: fetched.tarball.clone(),
+                dependencies: fetched
+                    .deps
+                    .keys()
+                    .map(|dep| format!("{dep}@{}", chosen[dep]))
                     .collect(),
             },
         );
@@ -218,6 +392,13 @@ pub fn install(
         lock_changed,
         ..InstallReport::default()
     };
+    for old in old_lock.iter().flat_map(|lock| lock.packages.iter()) {
+        if let Some(new) = resolved.get(&old.name).filter(|r| r.version != old.version) {
+            report
+                .changed
+                .push((old.name.clone(), old.version.clone(), new.version.clone()));
+        }
+    }
     for (name, r) in &resolved {
         let dest = modules.join(name);
         let id = format!("{name}@{}", r.version);
@@ -525,6 +706,7 @@ mod tests {
             InstallOptions {
                 offline: true,
                 locked: true,
+                ..InstallOptions::default()
             },
         )
         .unwrap();
@@ -564,8 +746,149 @@ mod tests {
         .unwrap_err()
         .to_string();
         assert!(err.contains("version conflict for `base`"), "{err}");
+        assert!(
+            err.contains("vex.toml needs base 2.0.0") && err.contains("mid@0.1.0 needs base 1.0.0"),
+            "{err}"
+        );
         assert!(!root.join("vex.lock").exists());
         assert!(!root.join("vex_modules/base").exists());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    fn install_with(
+        root: &Path,
+        pairs: &[(&str, &str)],
+        location: &str,
+        options: InstallOptions,
+    ) -> Result<InstallReport> {
+        install(root, &deps(pairs), location, &deps_of, options)
+    }
+
+    fn locked_versions(root: &Path) -> Vec<String> {
+        read_lock(root)
+            .unwrap()
+            .unwrap()
+            .packages
+            .iter()
+            .map(|p| format!("{}@{}", p.name, p.version))
+            .collect()
+    }
+
+    #[test]
+    fn ranges_pick_the_newest_match_and_keep_locked_versions() {
+        let dir = temp_dir("ranges");
+        let mut index = Index::default();
+        for v in ["1.0.0", "1.1.0", "2.0.0", "1.2.0-rc.1"] {
+            publish_local(&dir, &mut index, "base", v, &[]);
+        }
+        let location = write_index(&dir, &index);
+        let root = dir.join("app");
+        fs::create_dir_all(&root).unwrap();
+        let default = InstallOptions::default;
+
+        install_with(&root, &[("base", "^1.0")], &location, default()).unwrap();
+        assert_eq!(locked_versions(&root), ["base@1.1.0"]);
+
+        // A newer match appears: install keeps the lock, update moves it.
+        publish_local(&dir, &mut index, "base", "1.3.0", &[]);
+        let location = write_index(&dir, &index);
+        let report = install_with(&root, &[("base", "^1.0")], &location, default()).unwrap();
+        assert!(!report.lock_changed && report.changed.is_empty());
+        let report = install_with(
+            &root,
+            &[("base", "^1.0")],
+            &location,
+            InstallOptions {
+                update: Update::All,
+                ..default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            report.changed,
+            [("base".to_string(), "1.1.0".to_string(), "1.3.0".to_string())]
+        );
+        assert_eq!(locked_versions(&root), ["base@1.3.0"]);
+
+        // Tightening the requirement re-resolves without `update`.
+        install_with(&root, &[("base", "~1.1")], &location, default()).unwrap();
+        assert_eq!(locked_versions(&root), ["base@1.1.0"]);
+        install_with(&root, &[("base", "=1.0.0")], &location, default()).unwrap();
+        assert_eq!(locked_versions(&root), ["base@1.0.0"]);
+        install_with(&root, &[("base", "*")], &location, default()).unwrap();
+        assert_eq!(
+            locked_versions(&root),
+            ["base@1.0.0"],
+            "lock still fits `*`"
+        );
+
+        let err = install_with(&root, &[("base", "^3")], &location, default())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("no version of `base` satisfies `^3`")
+                && err.contains("available: 1.0.0, 1.1.0, 1.2.0-rc.1, 1.3.0, 2.0.0"),
+            "{err}"
+        );
+        let err = install_with(&root, &[("base", "1.x.y")], &location, default()).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("invalid version requirement"),
+            "{err:#}"
+        );
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn shared_dependencies_are_re_picked_to_satisfy_everyone() {
+        let dir = temp_dir("repick");
+        let mut index = Index::default();
+        publish_local(&dir, &mut index, "c", "1.0.0", &[]);
+        publish_local(&dir, &mut index, "c", "1.1.0", &[]);
+        publish_local(&dir, &mut index, "a", "1.0.0", &[("c", "^1")]);
+        publish_local(&dir, &mut index, "b", "1.0.0", &[("c", "=1.0.0")]);
+        let location = write_index(&dir, &index);
+        let root = dir.join("app");
+        fs::create_dir_all(&root).unwrap();
+        // `a` is resolved first and would pick c@1.1.0; `b` then needs
+        // exactly 1.0.0, so c is re-picked.
+        install_with(
+            &root,
+            &[("a", "1"), ("b", "1")],
+            &location,
+            InstallOptions::default(),
+        )
+        .unwrap();
+        assert_eq!(locked_versions(&root), ["a@1.0.0", "b@1.0.0", "c@1.0.0"]);
+        let lock = read_lock(&root).unwrap().unwrap();
+        assert_eq!(lock.packages[0].dependencies, ["c@1.0.0"]);
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn update_one_package_keeps_the_others() {
+        let dir = temp_dir("update-one");
+        let mut index = Index::default();
+        publish_local(&dir, &mut index, "x", "1.0.0", &[]);
+        publish_local(&dir, &mut index, "y", "1.0.0", &[]);
+        let location = write_index(&dir, &index);
+        let root = dir.join("app");
+        fs::create_dir_all(&root).unwrap();
+        let pairs = [("x", "1"), ("y", "1")];
+        install_with(&root, &pairs, &location, InstallOptions::default()).unwrap();
+        publish_local(&dir, &mut index, "x", "1.1.0", &[]);
+        publish_local(&dir, &mut index, "y", "1.1.0", &[]);
+        let location = write_index(&dir, &index);
+        install_with(
+            &root,
+            &pairs,
+            &location,
+            InstallOptions {
+                update: Update::Only(["y".to_string()].into()),
+                ..InstallOptions::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(locked_versions(&root), ["x@1.0.0", "y@1.1.0"]);
         fs::remove_dir_all(dir).unwrap();
     }
 
@@ -584,7 +907,7 @@ mod tests {
             &deps_of,
             InstallOptions {
                 locked: true,
-                offline: false,
+                ..InstallOptions::default()
             },
         )
         .unwrap_err();
