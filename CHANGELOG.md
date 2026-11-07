@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.3 (2026-11-06)
+
+Highlights: module functions are namespaced (`vexstd::clamp(...)`), `+`
+joins strings, and dependencies take Cargo-style version ranges, with a new
+`vexlang update`. Published with `vexlang-registry` 0.2.0, which has
+breaking API changes.
+
+**Upgrade notes:** a bare dependency version (`"0.1.0"`) now means
+`^0.1.0`, so use `=0.1.0` to pin exactly. With `export`s, a glob `use` now
+imports only exported functions. Packages whose own `vex.toml` uses range
+syntax need vexlang 0.1.0-alpha.3 or later to install.
+
+- The `site/keywords.html` generator recognizes the whole-word keyword rules
+  from 0.1.0-alpha.2 again. Without that, regenerating the page would have
+  shown 49 reserved words as merely proposed.
+
 - Version ranges. `[dependencies]` values are now Cargo-style requirements:
   `"0.1.0"` means `^0.1.0` (any compatible version), plus `~1.2`, `=1.2.3`,
   `1.*`, `*` and comma-joined comparisons such as `>=1.2, <2`. Pre-releases

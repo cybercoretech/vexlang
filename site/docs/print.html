@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1e1e9c3e.js";
+            window.path_to_searchindex_js = "searchindex-33703fe7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -213,16 +213,28 @@ underscores. The keywords <code>let</code>, <code>if</code>, <code>else</code>, 
 <tr><th>Precedence</th><th>Operators</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td>1</td><td><code>&amp;&amp;</code>, `</td><td></td></tr>
-<tr><td>2</td><td><code>&lt;</code>, <code>&gt;</code></td><td>Numeric comparison</td></tr>
-<tr><td>3</td><td><code>+</code>, <code>-</code></td><td>Addition and subtraction</td></tr>
-<tr><td>4</td><td><code>*</code>, <code>/</code></td><td>Multiplication and division</td></tr>
-<tr><td>5</td><td>unary <code>-</code>, <code>!</code></td><td>Numeric negation and boolean not</td></tr>
+<tr><td>1</td><td>`</td><td></td></tr>
+<tr><td>2</td><td><code>&amp;&amp;</code></td><td>Boolean and</td></tr>
+<tr><td>3</td><td><code>==</code>, <code>&lt;</code>, <code>&gt;</code></td><td>Equality and numeric comparison</td></tr>
+<tr><td>4</td><td><code>+</code>, <code>-</code></td><td>Addition and subtraction; <code>+</code> also joins strings</td></tr>
+<tr><td>5</td><td><code>*</code>, <code>/</code></td><td>Multiplication and division</td></tr>
+<tr><td>6</td><td>unary <code>-</code>, <code>!</code></td><td>Numeric negation and boolean not</td></tr>
 </tbody>
 </table>
 </div>
 <p>Parentheses override precedence. <code>&amp;&amp;</code> and <code>||</code> short-circuit. Arithmetic is
 checked for overflow, and division by zero is a runtime error.</p>
+<h2 id="strings"><a class="header" href="#strings">Strings</a></h2>
+<p><code>+</code> joins two strings. It does not convert other values, so turn numbers and
+booleans into text with <code>string(value)</code> first:</p>
+<pre><code class="language-vex">let name = "Vex";
+let count = 3;
+println("hello, " + name + "!");             // hello, Vex!
+println("count: " + string(count));          // count: 3
+println("ready: " + string(count &gt; 2));      // ready: true
+</code></pre>
+<p><code>"n=" + 1</code> is a type error that points you to <code>string(...)</code>. <code>string()</code>
+accepts <code>i32</code>, <code>u64</code>, <code>bool</code> and <code>string</code> values. Strings compare with <code>==</code>.</p>
 <h2 id="declarations-and-assignment"><a class="header" href="#declarations-and-assignment">Declarations and assignment</a></h2>
 <p><code>let name = expression;</code> infers a type. An optional annotation can be
 <code>i32</code>, <code>u64</code>, <code>bool</code>, <code>string</code>, or <code>res</code> (the latter is currently rejected as
@@ -232,7 +244,8 @@ index = index + 1;
 </code></pre>
 <p><code>i32</code> values must fit the signed 32-bit range. <code>u64</code> values are represented
 separately at runtime and cannot contain negative values. Explicit conversions
-are available as <code>i32(value)</code> and <code>u64(value)</code>.</p>
+are available as <code>i32(value)</code> and <code>u64(value)</code>, and <code>string(value)</code> turns a
+number or boolean into text.</p>
 <h2 id="records"><a class="header" href="#records">Records</a></h2>
 <p>Records declare fixed named fields. Construction must provide every field
 exactly once with a compatible value, and unknown field access is rejected:</p>
@@ -300,7 +313,7 @@ lib = "src/lib.vex"       # what `use sample;` loads when installed as a package
 description = "One line"
 
 [dependencies]
-greeter = "0.1.0"         # exact versions
+greeter = "0.1.0"         # a requirement: ^0.1.0 (`=0.1.0` pins it)
 </code></pre>
 <p>Use <code>vexlang project vex.toml</code> to validate and summarize it. Dependencies are
 installed with <code>vexlang install</code>; see <a href="#modules-and-packages">Modules and packages</a>.</p>
@@ -390,9 +403,9 @@ export square;
 <h1 id="modules-and-packages"><a class="header" href="#modules-and-packages">Modules and packages</a></h1>
 <h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
 <p><code>use</code> makes another module’s declarations available:</p>
-<pre><code class="language-vex">use math;           // everything in module `math`
+<pre><code class="language-vex">use math;           // math's functions, callable as `square(..)` or `math::square(..)`
 use math::*;        // the same
-use math::square;   // checks that `square` exists (and is exported)
+use math::square;   // only `square` unqualified; others as `math::cube(..)`
 </code></pre>
 <p>A module named <code>math</code> is found in this order:</p>
 <ol>
@@ -404,15 +417,26 @@ the source file that contains a <code>vex.toml</code>.</li>
 </ol>
 <p>The rules in this first version are deliberately simple:</p>
 <ul>
-<li><strong>One namespace.</strong> Imported declarations keep their names. If two modules,
-or a module and your program, declare the same name, that’s an error that
-names both.</li>
+<li><strong>Functions are namespaced.</strong> Every public function of an imported module
+can be called as <code>module::function(...)</code>. <code>use module;</code> also makes them
+callable unqualified, and <code>use module::function;</code> does that for one
+function and takes precedence over glob imports. A function your program
+declares itself wins over an imported one with the same name, and a
+module’s private helpers never clash with anything. If two glob-imported
+modules both provide <code>min</code>, calling plain <code>min(..)</code> is an ambiguity error
+(<code>E1104</code>), and <code>a::min(..)</code> / <code>b::min(..)</code> both work.</li>
+<li><strong>Types share one namespace.</strong> Records, enums, traits, newtypes,
+contracts, <code>impl</code> methods and <code>extern</code>/<code>trusted</code> functions keep their
+names. If two modules, or a module and your program, declare the same one,
+that’s an error that names both.</li>
 <li><strong>Declarations only.</strong> A module may contain <code>fn</code>, <code>record</code>, <code>enum</code>, <code>trait</code>,
 <code>impl</code>, <code>newtype</code>, <code>contract</code>, <code>use</code>, <code>export</code>, <code>module</code>, <code>test</code> and <code>bench</code>.
 Top-level statements are rejected, so importing never runs code. <code>test</code> and
 <code>bench</code> items are not imported.</li>
-<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, <code>use mod::item</code>
+<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, only exported
+functions are imported or callable as <code>module::item</code>, and <code>use mod::item</code>
 may only name exported items. A module without exports is fully public.</li>
+<li>In generated Rust and QBE, <code>math::square</code> is named <code>math__square</code>.</li>
 <li>Each module loads once. Import cycles are reported as errors.</li>
 <li>Imported code works in every command: <code>run</code>, <code>check</code>, <code>test</code>, <code>build</code>/<code>ir</code>,
 <code>target</code>/<code>qbe</code> (within the scalar subset) and <code>rust</code>.</li>
@@ -423,10 +447,10 @@ may only name exported items. A module without exports is fully public.</li>
 <tr><th>Code</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>E1101</code></td><td>module or item not found, or an unsupported nested path</td></tr>
+<tr><td><code>E1101</code></td><td>module or item not found, <code>module::f</code> for a module this file doesn’t import, or an unsupported nested path</td></tr>
 <tr><td><code>E1102</code></td><td>the module failed to parse or check, or has top-level statements</td></tr>
 <tr><td><code>E1103</code></td><td>import cycle</td></tr>
-<tr><td><code>E1104</code></td><td>the same name is declared in two places</td></tr>
+<tr><td><code>E1104</code></td><td>a type is declared in two places, or an unqualified call is ambiguous</td></tr>
 <tr><td><code>E1105</code></td><td>item not exported, or an export of an undeclared name</td></tr>
 </tbody>
 </table>
@@ -438,25 +462,53 @@ single <code>index.json</code> that records the tarball URL, SHA-256 and size of
 version. There is no registry server and no login.</p>
 <h3 id="using-packages"><a class="header" href="#using-packages">Using packages</a></h3>
 <pre><code class="language-sh">vexlang new app &amp;&amp; cd app
-vexlang add greeter            # latest non-yanked version, or greeter@0.1.0
+vexlang add greeter            # latest non-yanked version, written as "0.1.0" (= ^0.1.0)
+vexlang add greeter@~0.1       # or any requirement (see below)
 vexlang install                # after cloning: install what vex.toml lists
+vexlang update                 # move every locked version to the newest match
+vexlang update greeter         # ...or just this one
 vexlang install --locked       # CI: fail if vex.lock would change
 vexlang install --offline      # use only vex.lock and the download cache
 vexlang remove greeter
 vexlang search greet
 vexlang info greeter
 </code></pre>
-<p><code>vex.toml</code> lists exact versions:</p>
+<p><code>vex.toml</code> lists version requirements, with the same meaning as in Cargo:</p>
 <pre><code class="language-toml">[project]
 name = "app"
 version = "0.1.0"
 
 [dependencies]
-greeter = "0.1.0"
+greeter = "0.1.0"        # ^0.1.0: &gt;=0.1.0, &lt;0.2.0
+strs = "^1.2"            # &gt;=1.2.0, &lt;2.0.0
+pinned = "=2.0.1"        # exactly 2.0.1
 </code></pre>
-<p><code>install</code> resolves dependencies transitively, using the dependencies each
-package declares in its own <code>vex.toml</code>. Two different versions of one package
-anywhere in the tree are a conflict. Every tarball is checked against its
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Requirement</th><th>Matches</th></tr>
+</thead>
+<tbody>
+<tr><td><code>1.2.3</code>, <code>^1.2.3</code></td><td><code>&gt;=1.2.3, &lt;2.0.0</code></td></tr>
+<tr><td><code>^0.2.3</code></td><td><code>&gt;=0.2.3, &lt;0.3.0</code> (below 1.0 the minor version is the breaking one)</td></tr>
+<tr><td><code>^0.0.3</code></td><td><code>&gt;=0.0.3, &lt;0.0.4</code></td></tr>
+<tr><td><code>~1.2.3</code>, <code>~1.2</code></td><td><code>&gt;=1.2.3, &lt;1.3.0</code> / <code>&gt;=1.2.0, &lt;1.3.0</code></td></tr>
+<tr><td><code>=1.2.3</code></td><td>exactly <code>1.2.3</code></td></tr>
+<tr><td><code>1.2.*</code>, <code>1.*</code>, <code>*</code></td><td>any version with that prefix</td></tr>
+<tr><td><code>&gt;=1.2, &lt;1.5</code></td><td>all comma-separated comparators (<code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pre-releases such as <code>1.3.0-rc.1</code> only match a requirement that names a
+pre-release of the same version (<code>^1.3.0-rc.1</code>), so ranges never pick one up
+by accident.</p>
+<p><code>install</code> resolves dependencies transitively, using the requirements each
+package declares in its own <code>vex.toml</code>. Each package gets the version
+<code>vex.lock</code> already pins, as long as that still satisfies every requirement;
+otherwise it gets the newest non-yanked version that does. So <code>install</code> never
+upgrades on its own, and <code>update</code> does. There is one version of each package
+in the whole tree. If two packages need incompatible versions of a third,
+that’s a conflict that lists who needs what. Every tarball is checked against its
 size and SHA-256 before anything is unpacked into <code>vex_modules/NAME/</code>.
 Archives with paths outside the package, links or special files are refused.
 <code>vex.lock</code> pins the URL and hash of every package. Commit <code>vex.lock</code>, and add
@@ -499,9 +551,10 @@ diagnostics to a single machine-readable JSON object on standard error.</p>
 <tr><td><code>qbe FILE</code></td><td>Validate against <code>vex-scalar-v1</code> and emit experimental QBE IL</td><td><code>0</code></td></tr>
 <tr><td><code>rust FILE</code></td><td>Validate and transpile the program to standalone Rust source code</td><td><code>0</code></td></tr>
 <tr><td><code>new NAME [--lib]</code></td><td>Create a program or library project skeleton</td><td><code>0</code></td></tr>
-<tr><td><code>add NAME[@VER]</code></td><td>Add a dependency to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
+<tr><td><code>add NAME[@REQ]</code></td><td>Add a dependency (a version requirement such as <code>^0.2</code>; default: the latest version) to <code>vex.toml</code> and install it</td><td><code>0</code></td></tr>
 <tr><td><code>remove NAME</code></td><td>Remove a dependency and uninstall it</td><td><code>0</code></td></tr>
-<tr><td><code>install [--locked] [--offline]</code></td><td>Install <code>vex.toml</code> dependencies into <code>vex_modules/</code>, keeping <code>vex.lock</code></td><td><code>0</code></td></tr>
+<tr><td><code>install [--locked] [--offline]</code></td><td>Install <code>vex.toml</code> dependencies into <code>vex_modules/</code>, keeping the versions <code>vex.lock</code> pins</td><td><code>0</code></td></tr>
+<tr><td><code>update [NAME]</code></td><td>Re-resolve all (or one) locked versions to the newest that match <code>vex.toml</code></td><td><code>0</code></td></tr>
 <tr><td><code>search [TERM]</code>, <code>info NAME</code></td><td>Browse the package index</td><td><code>0</code></td></tr>
 <tr><td><code>fetch NAME@VER [--out DIR]</code></td><td>Download and verify one package tarball</td><td><code>0</code></td></tr>
 <tr><td><code>package [vex.toml]</code></td><td>Build a reproducible <code>dist/NAME-VERSION.tar.gz</code></td><td><code>0</code></td></tr>
@@ -616,9 +669,11 @@ propagation in the interpreter;</li>
 </ul>
 <h2 id="deferred-or-intentionally-unsupported"><a class="header" href="#deferred-or-intentionally-unsupported">Deferred or intentionally unsupported</a></h2>
 <p>Floating point values, resources (<code>res</code>), map mutation/iteration, generics,
-filesystem access, nested module namespaces, version ranges and project execution
-are deferred. <code>use</code> imports modules and packages into one shared namespace, and
-<code>vex.toml</code> dependencies are installed with a <code>vex.lock</code> lockfile. Record
+filesystem access, nested module paths and project execution
+are deferred. <code>use</code> imports modules and packages; their functions are
+namespaced (<code>module::function</code>) while types share one namespace, and
+<code>vex.toml</code> dependencies (Cargo-style version requirements) are installed
+with a <code>vex.lock</code> lockfile. Record
 types are the first supported user-defined type. Milestone 9’s lightweight
 compatibility, diagnostic,
 generated-input, and opt-in performance smoke tests are now present; a
@@ -649,11 +704,11 @@ zero, and <code>103</code> for signed division overflow (<code>i32::MIN / -1</co
 trait is the boundary used by the textual target emitter and experimental QBE
 emitter; Cranelift output is intentionally not implemented.</p>
 <h2 id="public-release-posture"><a class="header" href="#public-release-posture">Public release posture</a></h2>
-<p>Vex is suitable for a labeled <code>0.1.0-alpha.2</code> public release as an interpreter
+<p>Vex is suitable for a labeled <code>0.1.0-alpha.3</code> public release as an interpreter
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 <code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
-generics, module namespaces and version ranges remain post-alpha work.</p>
+generics and nested module paths remain post-alpha work.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="experimental-qbe-backend"><a class="header" href="#experimental-qbe-backend">Experimental QBE backend</a></h1>
 <p>The <code>qbe</code> command emits QBE IL for the verified <code>vex-scalar-v1</code> target subset.
@@ -785,7 +840,7 @@ binary; <code>build</code> remains a deterministic textual IR command. See the
 <a href="#public-alpha-release-guide">public alpha release guide</a> for the publish checklist.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="public-alpha-release-guide"><a class="header" href="#public-alpha-release-guide">Public alpha release guide</a></h1>
-<p>Vex <code>0.1.0-alpha.2</code> is an interpreter and typed textual-IR prototype with an
+<p>Vex <code>0.1.0-alpha.3</code> is an interpreter and typed textual-IR prototype with an
 experimental scalar QBE IL emitter. A release publishes the Cargo source
 package; it does <strong>not</strong> publish a native binary or claim production compiler
 support.</p>

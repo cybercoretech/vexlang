@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1e1e9c3e.js";
+            window.path_to_searchindex_js = "searchindex-33703fe7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -198,9 +198,11 @@ propagation in the interpreter;</li>
 </ul>
 <h2 id="deferred-or-intentionally-unsupported"><a class="header" href="#deferred-or-intentionally-unsupported">Deferred or intentionally unsupported</a></h2>
 <p>Floating point values, resources (<code>res</code>), map mutation/iteration, generics,
-filesystem access, nested module namespaces, version ranges and project execution
-are deferred. <code>use</code> imports modules and packages into one shared namespace, and
-<code>vex.toml</code> dependencies are installed with a <code>vex.lock</code> lockfile. Record
+filesystem access, nested module paths and project execution
+are deferred. <code>use</code> imports modules and packages; their functions are
+namespaced (<code>module::function</code>) while types share one namespace, and
+<code>vex.toml</code> dependencies (Cargo-style version requirements) are installed
+with a <code>vex.lock</code> lockfile. Record
 types are the first supported user-defined type. Milestone 9’s lightweight
 compatibility, diagnostic,
 generated-input, and opt-in performance smoke tests are now present; a
@@ -231,11 +233,11 @@ zero, and <code>103</code> for signed division overflow (<code>i32::MIN / -1</co
 trait is the boundary used by the textual target emitter and experimental QBE
 emitter; Cranelift output is intentionally not implemented.</p>
 <h2 id="public-release-posture"><a class="header" href="#public-release-posture">Public release posture</a></h2>
-<p>Vex is suitable for a labeled <code>0.1.0-alpha.2</code> public release as an interpreter
+<p>Vex is suitable for a labeled <code>0.1.0-alpha.3</code> public release as an interpreter
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 <code>security@cybercoretech.net</code>. Native executable artifacts, a fuzzing service, maps,
-generics, module namespaces and version ranges remain post-alpha work.</p>
+generics and nested module paths remain post-alpha work.</p>
 
                     </main>
 
