@@ -11,7 +11,9 @@ textual-IR scope. Maps and generics remain intentionally deferred.
 ## Publish checklist
 
 1. Confirm the intended version in `Cargo.toml`, then update the matching
-   changelog entry and README release badge/text.
+   changelog entry, the README release badge/text, and the
+   `cargo install vexlang@VERSION` commands in the README and `site/index.html`.
+   A plain `cargo install vexlang` does not find pre-releases.
 2. Run `./scripts/check-release.sh`. It checks Cargo metadata, prerelease
    naming, documentation references, and package inclusion.
 3. Run the complete [quality gate](development.md), including Rust 1.85.0 and

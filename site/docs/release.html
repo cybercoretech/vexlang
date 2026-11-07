@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-33703fe7.js";
+            window.path_to_searchindex_js = "searchindex-6b0967bc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -185,7 +185,9 @@ textual-IR scope. Maps and generics remain intentionally deferred.</p>
 <h2 id="publish-checklist"><a class="header" href="#publish-checklist">Publish checklist</a></h2>
 <ol>
 <li>Confirm the intended version in <code>Cargo.toml</code>, then update the matching
-changelog entry and README release badge/text.</li>
+changelog entry, the README release badge/text, and the
+<code>cargo install vexlang@VERSION</code> commands in the README and <code>site/index.html</code>.
+A plain <code>cargo install vexlang</code> does not find pre-releases.</li>
 <li>Run <code>./scripts/check-release.sh</code>. It checks Cargo metadata, prerelease
 naming, documentation references, and package inclusion.</li>
 <li>Run the complete <a href="development.html">quality gate</a>, including Rust 1.85.0 and

@@ -77,7 +77,14 @@ native executable generation remain deferred.
 
 ## 🧪 Quick start
 
-Run or validate a source file:
+Install the CLI from crates.io. Cargo skips pre-releases unless you name
+one, so plain `cargo install vexlang` finds nothing while Vex is in alpha:
+
+```sh
+cargo install vexlang@0.1.0-alpha.3
+```
+
+From a checkout, run or validate a source file:
 
 ```sh
 cargo run -- run program.vex
