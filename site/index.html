@@ -124,7 +124,9 @@ a{color:inherit}.shell{width:min(1180px,calc(100% - 2.5rem));margin:0 auto}.skip
   /* Long paths and URLs in inline code may break anywhere instead of widening the page. */
   :not(pre) > code { overflow-wrap: anywhere; }
 }
-  </style>
+  /* Alpha boundary: the install commands scroll inside their box instead of widening the page. */
+@media (max-width: 1024px) { .alpha > * { min-width: 0; } .alpha .commands pre { overflow-x: auto; } }
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
