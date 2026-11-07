@@ -9,7 +9,7 @@ released under the [MIT license](LICENSE).
 
 [![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![CI](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml/badge.svg)](https://github.com/cybercoretech/vexlang/actions/workflows/quality.yml)
-[![Release](https://img.shields.io/badge/release-0.1.0--alpha.2-purple)](https://github.com/cybercoretech/vexlang)
+[![Release](https://img.shields.io/badge/release-0.1.0--alpha.3-purple)](https://github.com/cybercoretech/vexlang)
 
 ## 🛰️ Signal status
 
@@ -268,7 +268,7 @@ The complete [Vex mdBook documentation](docs/src/intro.md) includes the
 
 ## 📦 Public alpha release checklist
 
-Current release: `0.1.0-alpha.2`.
+Current release: `0.1.0-alpha.3`.
 
 The package version is declared in `Cargo.toml` and exposed by
 `vexlang --version`. Before publishing a tagged alpha, run:

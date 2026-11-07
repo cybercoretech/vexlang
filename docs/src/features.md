@@ -65,7 +65,7 @@ emitter; Cranelift output is intentionally not implemented.
 
 ## Public release posture
 
-Vex is suitable for a labeled `0.1.0-alpha.2` public release as an interpreter
+Vex is suitable for a labeled `0.1.0-alpha.3` public release as an interpreter
 and typed-IR prototype. It is not presented as a production compiler. The MIT
 license grants redistribution rights, and security reports should be sent to
 `security@cybercoretech.net`. Native executable artifacts, a fuzzing service, maps,

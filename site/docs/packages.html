@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1e1e9c3e.js";
+            window.path_to_searchindex_js = "searchindex-33703fe7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9aac5dea.js"></script>
@@ -178,9 +178,9 @@
                         <h1 id="modules-and-packages"><a class="header" href="#modules-and-packages">Modules and packages</a></h1>
 <h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
 <p><code>use</code> makes another module’s declarations available:</p>
-<pre><code class="language-vex">use math;           // everything in module `math`
+<pre><code class="language-vex">use math;           // math's functions, callable as `square(..)` or `math::square(..)`
 use math::*;        // the same
-use math::square;   // checks that `square` exists (and is exported)
+use math::square;   // only `square` unqualified; others as `math::cube(..)`
 </code></pre>
 <p>A module named <code>math</code> is found in this order:</p>
 <ol>
@@ -192,15 +192,26 @@ the source file that contains a <code>vex.toml</code>.</li>
 </ol>
 <p>The rules in this first version are deliberately simple:</p>
 <ul>
-<li><strong>One namespace.</strong> Imported declarations keep their names. If two modules,
-or a module and your program, declare the same name, that’s an error that
-names both.</li>
+<li><strong>Functions are namespaced.</strong> Every public function of an imported module
+can be called as <code>module::function(...)</code>. <code>use module;</code> also makes them
+callable unqualified, and <code>use module::function;</code> does that for one
+function and takes precedence over glob imports. A function your program
+declares itself wins over an imported one with the same name, and a
+module’s private helpers never clash with anything. If two glob-imported
+modules both provide <code>min</code>, calling plain <code>min(..)</code> is an ambiguity error
+(<code>E1104</code>), and <code>a::min(..)</code> / <code>b::min(..)</code> both work.</li>
+<li><strong>Types share one namespace.</strong> Records, enums, traits, newtypes,
+contracts, <code>impl</code> methods and <code>extern</code>/<code>trusted</code> functions keep their
+names. If two modules, or a module and your program, declare the same one,
+that’s an error that names both.</li>
 <li><strong>Declarations only.</strong> A module may contain <code>fn</code>, <code>record</code>, <code>enum</code>, <code>trait</code>,
 <code>impl</code>, <code>newtype</code>, <code>contract</code>, <code>use</code>, <code>export</code>, <code>module</code>, <code>test</code> and <code>bench</code>.
 Top-level statements are rejected, so importing never runs code. <code>test</code> and
 <code>bench</code> items are not imported.</li>
-<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, <code>use mod::item</code>
+<li><strong>Exports.</strong> If a module has any <code>export NAME;</code> statements, only exported
+functions are imported or callable as <code>module::item</code>, and <code>use mod::item</code>
 may only name exported items. A module without exports is fully public.</li>
+<li>In generated Rust and QBE, <code>math::square</code> is named <code>math__square</code>.</li>
 <li>Each module loads once. Import cycles are reported as errors.</li>
 <li>Imported code works in every command: <code>run</code>, <code>check</code>, <code>test</code>, <code>build</code>/<code>ir</code>,
 <code>target</code>/<code>qbe</code> (within the scalar subset) and <code>rust</code>.</li>
@@ -211,10 +222,10 @@ may only name exported items. A module without exports is fully public.</li>
 <tr><th>Code</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>E1101</code></td><td>module or item not found, or an unsupported nested path</td></tr>
+<tr><td><code>E1101</code></td><td>module or item not found, <code>module::f</code> for a module this file doesn’t import, or an unsupported nested path</td></tr>
 <tr><td><code>E1102</code></td><td>the module failed to parse or check, or has top-level statements</td></tr>
 <tr><td><code>E1103</code></td><td>import cycle</td></tr>
-<tr><td><code>E1104</code></td><td>the same name is declared in two places</td></tr>
+<tr><td><code>E1104</code></td><td>a type is declared in two places, or an unqualified call is ambiguous</td></tr>
 <tr><td><code>E1105</code></td><td>item not exported, or an export of an undeclared name</td></tr>
 </tbody>
 </table>
@@ -226,25 +237,53 @@ single <code>index.json</code> that records the tarball URL, SHA-256 and size of
 version. There is no registry server and no login.</p>
 <h3 id="using-packages"><a class="header" href="#using-packages">Using packages</a></h3>
 <pre><code class="language-sh">vexlang new app &amp;&amp; cd app
-vexlang add greeter            # latest non-yanked version, or greeter@0.1.0
+vexlang add greeter            # latest non-yanked version, written as "0.1.0" (= ^0.1.0)
+vexlang add greeter@~0.1       # or any requirement (see below)
 vexlang install                # after cloning: install what vex.toml lists
+vexlang update                 # move every locked version to the newest match
+vexlang update greeter         # ...or just this one
 vexlang install --locked       # CI: fail if vex.lock would change
 vexlang install --offline      # use only vex.lock and the download cache
 vexlang remove greeter
 vexlang search greet
 vexlang info greeter
 </code></pre>
-<p><code>vex.toml</code> lists exact versions:</p>
+<p><code>vex.toml</code> lists version requirements, with the same meaning as in Cargo:</p>
 <pre><code class="language-toml">[project]
 name = "app"
 version = "0.1.0"
 
 [dependencies]
-greeter = "0.1.0"
+greeter = "0.1.0"        # ^0.1.0: &gt;=0.1.0, &lt;0.2.0
+strs = "^1.2"            # &gt;=1.2.0, &lt;2.0.0
+pinned = "=2.0.1"        # exactly 2.0.1
 </code></pre>
-<p><code>install</code> resolves dependencies transitively, using the dependencies each
-package declares in its own <code>vex.toml</code>. Two different versions of one package
-anywhere in the tree are a conflict. Every tarball is checked against its
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Requirement</th><th>Matches</th></tr>
+</thead>
+<tbody>
+<tr><td><code>1.2.3</code>, <code>^1.2.3</code></td><td><code>&gt;=1.2.3, &lt;2.0.0</code></td></tr>
+<tr><td><code>^0.2.3</code></td><td><code>&gt;=0.2.3, &lt;0.3.0</code> (below 1.0 the minor version is the breaking one)</td></tr>
+<tr><td><code>^0.0.3</code></td><td><code>&gt;=0.0.3, &lt;0.0.4</code></td></tr>
+<tr><td><code>~1.2.3</code>, <code>~1.2</code></td><td><code>&gt;=1.2.3, &lt;1.3.0</code> / <code>&gt;=1.2.0, &lt;1.3.0</code></td></tr>
+<tr><td><code>=1.2.3</code></td><td>exactly <code>1.2.3</code></td></tr>
+<tr><td><code>1.2.*</code>, <code>1.*</code>, <code>*</code></td><td>any version with that prefix</td></tr>
+<tr><td><code>&gt;=1.2, &lt;1.5</code></td><td>all comma-separated comparators (<code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pre-releases such as <code>1.3.0-rc.1</code> only match a requirement that names a
+pre-release of the same version (<code>^1.3.0-rc.1</code>), so ranges never pick one up
+by accident.</p>
+<p><code>install</code> resolves dependencies transitively, using the requirements each
+package declares in its own <code>vex.toml</code>. Each package gets the version
+<code>vex.lock</code> already pins, as long as that still satisfies every requirement;
+otherwise it gets the newest non-yanked version that does. So <code>install</code> never
+upgrades on its own, and <code>update</code> does. There is one version of each package
+in the whole tree. If two packages need incompatible versions of a third,
+that’s a conflict that lists who needs what. Every tarball is checked against its
 size and SHA-256 before anything is unpacked into <code>vex_modules/NAME/</code>.
 Archives with paths outside the package, links or special files are refused.
 <code>vex.lock</code> pins the URL and hash of every package. Commit <code>vex.lock</code>, and add

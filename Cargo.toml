@@ -1,6 +1,6 @@
 [package]
 name = "vexlang"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.3"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
@@ -33,7 +33,7 @@ pest_derive = "2.7"
 # wasm32 (browser) build entirely.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 anyhow = "1.0.104"
-vexlang-registry = { path = "crates/vexlang-registry", version = "0.1.0" }
+vexlang-registry = { path = "crates/vexlang-registry", version = "0.2.0" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

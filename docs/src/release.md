@@ -1,6 +1,6 @@
 # Public alpha release guide
 
-Vex `0.1.0-alpha.2` is an interpreter and typed textual-IR prototype with an
+Vex `0.1.0-alpha.3` is an interpreter and typed textual-IR prototype with an
 experimental scalar QBE IL emitter. A release publishes the Cargo source
 package; it does **not** publish a native binary or claim production compiler
 support.
